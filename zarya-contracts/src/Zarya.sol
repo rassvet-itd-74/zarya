@@ -28,6 +28,35 @@ contract Zarya {
     error ChairmanPrivilegeAlreadyUsed(address chairman, PartyOrgan organ);
     error CannotRemoveChairman(PartyOrgan organ, address member);
 
+    /// @notice Снапшот одной записи из истории значений ячейки матрицы.
+    struct CellCheckpoint {
+        uint32 timestamp;
+        address author;
+        uint64 value;
+    }
+
+    /// @notice Пограничный результат запроса истории значений ячейки
+    /// матрицы.
+    struct CellHistory {
+        uint32[] timestamps;
+        address[] authors;
+        uint64[] values;
+    }
+
+    /// @notice Общая информация о ячейке категорийной матрицы.
+    struct CategoricalCellInfoResult {
+        PartyOrgan organ;
+        uint64[] allowedCategories;
+        uint256 sampleLength;
+    }
+
+    /// @notice Общая информация о ячейке числовой матрицы.
+    struct NumericalCellInfoResult {
+        PartyOrgan organ;
+        uint8 decimals;
+        uint256 sampleLength;
+    }
+
     modifier onlyMember(PartyOrgan organ) {
         _onlyMember(organ);
         _;
@@ -96,7 +125,10 @@ contract Zarya {
         uint64 value,
         address valueAuthor,
         uint256 duration
-    ) internal returns (uint256 votingId) {
+    )
+        internal
+        returns (uint256 votingId)
+    {
         votingId = _getNextVotingId();
         if (isCategorical) {
             _votings[votingId].createCategoricalValueVoting(
@@ -131,7 +163,11 @@ contract Zarya {
         }
     }
 
-    function createMembershipVoting(PartyOrgan organ, address member, uint256 duration)
+    function createMembershipVoting(
+        PartyOrgan organ,
+        address member,
+        uint256 duration
+    )
         external
         returns (uint256 votingId)
     {
@@ -140,7 +176,11 @@ contract Zarya {
         _votings[votingId].createMembershipVoting(votingId, msg.sender, duration, organ, member);
     }
 
-    function createMembershipRevocationVoting(PartyOrgan organ, address member, uint256 duration)
+    function createMembershipRevocationVoting(
+        PartyOrgan organ,
+        address member,
+        uint256 duration
+    )
         external
         returns (uint256 votingId)
     {
@@ -154,7 +194,14 @@ contract Zarya {
         _votings[votingId].createMembershipRevocationVoting(votingId, msg.sender, duration, organ, member);
     }
 
-    function createCategoryVoting(PartyOrgan organ, uint256 x, uint256 y, uint64 category, string calldata categoryName, uint256 duration)
+    function createCategoryVoting(
+        PartyOrgan organ,
+        uint256 x,
+        uint256 y,
+        uint64 category,
+        string calldata categoryName,
+        uint256 duration
+    )
         external
         onlyMember(organ)
         returns (uint256 votingId)
@@ -163,7 +210,13 @@ contract Zarya {
         _votings[votingId].createCategoryVoting(votingId, msg.sender, duration, organ, x, y, category, categoryName);
     }
 
-    function createDecimalsVoting(PartyOrgan organ, uint256 x, uint256 y, uint8 decimals, uint256 duration)
+    function createDecimalsVoting(
+        PartyOrgan organ,
+        uint256 x,
+        uint256 y,
+        uint8 decimals,
+        uint256 duration
+    )
         external
         onlyMember(organ)
         returns (uint256 votingId)
@@ -172,7 +225,12 @@ contract Zarya {
         _votings[votingId].createDecimalsVoting(votingId, msg.sender, duration, organ, x, y, decimals);
     }
 
-    function createThemeVoting(bool isCategorical, uint256 x, string calldata theme, uint256 duration)
+    function createThemeVoting(
+        bool isCategorical,
+        uint256 x,
+        string calldata theme,
+        uint256 duration
+    )
         external
         returns (uint256 votingId)
     {
@@ -186,7 +244,10 @@ contract Zarya {
         uint256 y,
         string calldata statement,
         uint256 duration
-    ) external returns (uint256 votingId) {
+    )
+        external
+        returns (uint256 votingId)
+    {
         votingId = _getNextVotingId();
         _votings[votingId].createStatementVoting(votingId, msg.sender, duration, isCategorical, x, y, statement);
     }
@@ -198,7 +259,11 @@ contract Zarya {
         uint64 value,
         address valueAuthor,
         uint256 duration
-    ) external onlyMember(organ) returns (uint256 votingId) {
+    )
+        external
+        onlyMember(organ)
+        returns (uint256 votingId)
+    {
         return _createValueVoting(true, organ, x, y, value, valueAuthor, duration);
     }
 
@@ -209,12 +274,20 @@ contract Zarya {
         uint64 value,
         address valueAuthor,
         uint256 duration
-    ) external onlyMember(organ) returns (uint256 votingId) {
+    )
+        external
+        onlyMember(organ)
+        returns (uint256 votingId)
+    {
         return _createValueVoting(false, organ, x, y, value, valueAuthor, duration);
     }
 
     // Voting participation functions
-    function castVote(uint256 votingId, bool support, PartyOrgan organ)
+    function castVote(
+        uint256 votingId,
+        bool support,
+        PartyOrgan organ
+    )
         external
         votingExists(votingId)
         onlyMember(organ)
@@ -222,14 +295,19 @@ contract Zarya {
         _votings[votingId].castVote(support, msg.sender);
     }
 
-    function executeVoting(uint256 votingId, uint256 minimumQuorum, uint256 minimumApprovalPercentage)
+    function executeVoting(
+        uint256 votingId,
+        uint256 minimumQuorum,
+        uint256 minimumApprovalPercentage
+    )
         external
         votingExists(votingId)
         returns (bool success)
     {
-        return _votings[votingId].executeVoting(
-            minimumQuorum, minimumApprovalPercentage, _matricies, _partyMembersRegistry
-        );
+        return
+            _votings[votingId].executeVoting(
+                minimumQuorum, minimumApprovalPercentage, _matricies, _partyMembersRegistry
+            );
     }
 
     // View functions
@@ -288,20 +366,19 @@ contract Zarya {
     }
 
     // Cell Info Aggregates
-    function getCategoricalCellInfo(uint256 x, uint256 y)
+    function getCategoricalCellInfo(
+        uint256 x,
+        uint256 y
+    )
         external
         view
-        returns (PartyOrgan organ, uint64[] memory allowedCategories, uint256 sampleLength)
+        returns (CategoricalCellInfoResult memory result)
     {
-        return _matricies.getCategoricalCellInfo(x, y);
+        (result.organ, result.allowedCategories, result.sampleLength) = _matricies.getCategoricalCellInfo(x, y);
     }
 
-    function getNumericalCellInfo(uint256 x, uint256 y)
-        external
-        view
-        returns (PartyOrgan organ, uint8 decimals, uint256 sampleLength)
-    {
-        return _matricies.getNumericalCellInfo(x, y);
+    function getNumericalCellInfo(uint256 x, uint256 y) external view returns (NumericalCellInfoResult memory result) {
+        (result.organ, result.decimals, result.sampleLength) = _matricies.getNumericalCellInfo(x, y);
     }
 
     // Sample Length Queries
@@ -314,70 +391,91 @@ contract Zarya {
     }
 
     // Latest Value Queries
-    function getCategoricalLatestValue(uint256 x, uint256 y)
-        external
-        view
-        returns (uint32 timestamp, address author, uint64 value)
-    {
-        return _unpackCheckpoint(_matricies.getLatestCategoricalValue(x, y));
+    function getCategoricalLatestValue(uint256 x, uint256 y) external view returns (CellCheckpoint memory result) {
+        (result.timestamp, result.author, result.value) = _unpackCheckpoint(_matricies.getLatestCategoricalValue(x, y));
     }
 
-    function getNumericalLatestValue(uint256 x, uint256 y)
-        external
-        view
-        returns (uint32 timestamp, address author, uint64 value)
-    {
-        return _unpackCheckpoint(_matricies.getLatestNumericalValue(x, y));
+    function getNumericalLatestValue(uint256 x, uint256 y) external view returns (CellCheckpoint memory result) {
+        (result.timestamp, result.author, result.value) = _unpackCheckpoint(_matricies.getLatestNumericalValue(x, y));
     }
 
     // Indexed Value Access
-    function getCategoricalValueAt(uint256 x, uint256 y, uint256 index)
+    function getCategoricalValueAt(
+        uint256 x,
+        uint256 y,
+        uint256 index
+    )
         external
         view
-        returns (uint32 timestamp, address author, uint64 value)
+        returns (CellCheckpoint memory result)
     {
-        return _unpackCheckpoint(_matricies.getCategoricalValueAt(x, y, index));
+        (result.timestamp, result.author, result.value) =
+            _unpackCheckpoint(_matricies.getCategoricalValueAt(x, y, index));
     }
 
-    function getNumericalValueAt(uint256 x, uint256 y, uint256 index)
+    function getNumericalValueAt(
+        uint256 x,
+        uint256 y,
+        uint256 index
+    )
         external
         view
-        returns (uint32 timestamp, address author, uint64 value)
+        returns (CellCheckpoint memory result)
     {
-        return _unpackCheckpoint(_matricies.getNumericalValueAt(x, y, index));
+        (result.timestamp, result.author, result.value) = _unpackCheckpoint(_matricies.getNumericalValueAt(x, y, index));
     }
 
     // Timestamp Lookup
-    function getCategoricalValueAtTimestamp(uint256 x, uint256 y, uint32 timestamp)
+    function getCategoricalValueAtTimestamp(
+        uint256 x,
+        uint256 y,
+        uint32 timestamp
+    )
         external
         view
-        returns (uint32 actualTimestamp, address author, uint64 value)
+        returns (CellCheckpoint memory result)
     {
-        return _unpackCheckpoint(_matricies.getCategoricalValueAtTimestamp(x, y, timestamp));
+        (result.timestamp, result.author, result.value) =
+            _unpackCheckpoint(_matricies.getCategoricalValueAtTimestamp(x, y, timestamp));
     }
 
-    function getNumericalValueAtTimestamp(uint256 x, uint256 y, uint32 timestamp)
+    function getNumericalValueAtTimestamp(
+        uint256 x,
+        uint256 y,
+        uint32 timestamp
+    )
         external
         view
-        returns (uint32 actualTimestamp, address author, uint64 value)
+        returns (CellCheckpoint memory result)
     {
-        return _unpackCheckpoint(_matricies.getNumericalValueAtTimestamp(x, y, timestamp));
+        (result.timestamp, result.author, result.value) =
+            _unpackCheckpoint(_matricies.getNumericalValueAtTimestamp(x, y, timestamp));
     }
 
     // Paginated History Queries
-    function getCategoricalHistory(uint256 x, uint256 y, uint256 offset, uint256 limit)
+    function getCategoricalHistory(
+        uint256 x,
+        uint256 y,
+        uint256 offset,
+        uint256 limit
+    )
         external
         view
-        returns (uint32[] memory timestamps, address[] memory authors, uint64[] memory values)
+        returns (CellHistory memory result)
     {
-        return _matricies.getCategoricalHistory(x, y, offset, limit);
+        (result.timestamps, result.authors, result.values) = _matricies.getCategoricalHistory(x, y, offset, limit);
     }
 
-    function getNumericalHistory(uint256 x, uint256 y, uint256 offset, uint256 limit)
+    function getNumericalHistory(
+        uint256 x,
+        uint256 y,
+        uint256 offset,
+        uint256 limit
+    )
         external
         view
-        returns (uint32[] memory timestamps, address[] memory authors, uint64[] memory values)
+        returns (CellHistory memory result)
     {
-        return _matricies.getNumericalHistory(x, y, offset, limit);
+        (result.timestamps, result.authors, result.values) = _matricies.getNumericalHistory(x, y, offset, limit);
     }
 }
