@@ -1,154 +1,163 @@
-# Zarya - Decentralized Autonomous Intra-Party Organization (DAIPO)
+![Логотип](resource/logo.png)
 
-> **Mathematically formalized party opinion through blockchain voting**
+# ДАВО "Заря" - Децентрализованная автономная внутрипартийная организация
 
-Zarya is a distributed software system designed to formalize, manage, and analyze political party opinions using DAO (Decentralized Autonomous Organization) technology and statistical analysis. It provides a transparent and democratic framework for decision-making.
+[![License](https://img.shields.io/github/license/Rassvet-CEC-ITD/zarya)](LICENSE)
+[![GitHub issues](https://img.shields.io/github/issues/Rassvet-CEC-ITD/zarya)](https://github.com/Rassvet-CEC-ITD/zarya/issues)
+[![GitHub stars](https://img.shields.io/github/stars/Rassvet-CEC-ITD/zarya)](https://github.com/Rassvet-CEC-ITD/zarya/stargazers)
 
-## 🎯 Overview
+> **Математически формализованное мнение партии через блокчейн-голосование**
 
-The system implements a mathematically rigorous approach to collective decision-making, where party opinion is formalized as a pair of matrices containing continuous and categorical random variables. All changes to these matrices are governed by blockchain-based voting that mirrors the party's charter structure.
+Система для автоматизации управления мнением партии "Рассвет" с использованием технологий DAO и статистического анализа.
 
-**Key Features:**
-- 🗳️ **DAO-based Governance** - Blockchain voting aligned with party structure (a political party structure inside the smart-contract)
-- 🧮 **Mathematical Formalization** - Opinion represented as statistical matrices
-- 📊 **Statistical Analysis** - Automated aggregation and predictive modeling (histogram & avg :3 )
-- 📝 **Auto-generation** - Human-readable documents from formalized data (general report pdf generation)
-- 🔮 **Forecasting** - Predict changes in party position (1) see the avg, 2) make prediction - simple)
+## 📋 Содержание
 
-## 📁 Project Structure
+- [ДАВО "Заря" - Децентрализованная автономная внутрипартийная организация](#даво-заря---децентрализованная-автономная-внутрипартийная-организация)
+  - [📋 Содержание](#-содержание)
+  - [📖 Описание проекта](#-описание-проекта)
+    - [🎯 Ключевые возможности](#-ключевые-возможности)
+  - [🎯 Мотивация](#-мотивация)
+    - [Проблемы современных партий:](#проблемы-современных-партий)
+    - [Решение через "Зарю":](#решение-через-зарю)
+  - [🧮 Математическая модель](#-математическая-модель)
+    - [Эмпирическая реализация](#эмпирическая-реализация)
+  - [⚡ Архитектура DAO](#-архитектура-dao)
+    - [Поддерживаемые органы](#поддерживаемые-органы)
+  - [📊 Примеры работы](#-примеры-работы)
+  - [🔮 Прогнозирование](#-прогнозирование)
+    - [Проверка нулевой гипотезы (H₀)](#проверка-нулевой-гипотезы-h)
+  - [🛠️ Технологический стек](#️-технологический-стек)
+  - [🔗 Полезные ссылки](#-полезные-ссылки)
+  - [🤝 Участие в проекте](#-участие-в-проекте)
 
-This monorepo contains three main subprojects:
+## 📖 Описание проекта
 
-### 1. **zarya-contracts** - Smart Contract Layer
-Solidity-based smart contracts built with Foundry, implementing the DAO governance system.
+**ДАВО "Заря"** — распределённое ПО для формализации и анализа мнения партии "Рассвет" через математические методы и блокчейн-голосование.
 
-**Technology Stack:**
-- Solidity 0.8.28
-- Foundry (Forge)
-- OpenZeppelin Contracts v5.4.0-rc.1
+### 🎯 Ключевые возможности
 
-**Core Components:**
-- `Zarya.sol` - Main contract coordinating the system
-- `Matricies.sol` - Storage for opinion matrices (continuous & categorical)
-- `Votings.sol` - Voting mechanisms and lifecycle management
-- `PartyOrgans.sol` - Party structure and membership registry
-- `Regions.sol` - Geographic organizational units
+- 🧮 **Математическая формализация** мнения через матрицы случайных величин
+- 🗳️ **DAO-голосование** с соответствием Уставу партии  
+- 📊 **Статистический анализ** и агрегация мнений
+- 📝 **Автогенерация** человекочитаемых документов
+- 🔮 **Прогнозирование** изменений позиции партии
 
-**Documentation:**
-- [Smart Contracts README](zarya-contracts/README.md)
-- [Whitepaper](zarya-contracts/whitepaper.md) (Russian)
+## 🎯 Мотивация
 
-### 2. **zarya-frontend** - Web Interface
-Vue 3 + Vite frontend providing user interaction with the DAO.
+### Проблемы современных партий:
 
-**Technology Stack:**
-- Vue 3
-- Vite
-- Vue Router
-- Wagmi/Viem (Web3 integration)
-- TanStack Vue Query
-- Vue i18n (multilingual support)
-- Sass
+1. **Неэффективные консультации** - непредсказуемая длительность и качество обсуждений
+2. **Бюрократическая нагрузка** - постоянные созывы органов для выяснения мнения
+3. **Хаос документооборота** - бесконечные поправки и версии документов
+4. **Фейковые новости и дезинформация** - сложно проверить достоверность заявлений и позиций без статистического анализа
 
-**Features:**
-- Voting interface with progress tracking
-- Party opinion listing and visualization
-- Wallet connection (Web3)
-- Responsive design with SCSS
+### Решение через "Зарю":
 
-**Key Components:**
-- Voting modal and cards
-- Categorical distribution charts
-- Continuous statistics displays
-- Status badges and progress indicators
+- **Статистически обоснованные рекомендации** с заданной точностью
+- **Фильтрация вопросов** и снижение бюрократической нагрузки  
+- **Единая актуальная позиция** без версионности документов
+- **Верификация через тестирование гипотез** - проверка соответствия заявлений реальному мнению партии
 
-### 3. **zarya-api** - Backend Services
-Spring Boot-based API layer providing additional services and integrations.
+## 🧮 Математическая модель
 
-**Technology Stack:**
-- Java 25
-- Spring Boot 3.5.7
-- Spring GraphQL
-- Spring Security
-- Thymeleaf
-- PostgreSQL
-- OpenPDF
-- Maven
+Мнение партии формализуется как структура из двух типов данных:
 
-**Purpose:**
-- GraphQL API server
-- PDF document generation
-- Backend services and business logic
-- Security and authentication layer
-- Data persistence and analysis
-
-## 🚀 Getting Started
-
-### Prerequisites
-- **For Contracts:** Foundry, Solidity compiler
-- **For Frontend:** Node.js 18+, bun
-- **For API:** JDK 25, Maven
-
-### Quick Start
-
-#### Smart Contracts
-```bash
-cd zarya-contracts
-forge install
-forge build
-forge test
+```
+PartyOpinion = {
+    quantitative_matrix: X,    // числовые оценки
+    categorical_matrix: Y      // категориальные суждения
+}
 ```
 
-#### Frontend
-```bash
-cd zarya-frontend
-bun install
-bun run dev
+где:
+- `X` — матрица **непрерывных величин** (количественные оценки)
+- `Y` — матрица **дискретных величин** (категориальные суждения)
+
+### Эмпирическая реализация
+
+В реальной системе используются накапливаемые выборки:
+
+```
+OpinionMatrix = {
+    samples_X: накопленные_числовые_значения,
+    samples_Y: накопленные_категориальные_значения
+}
 ```
 
-#### Backend API
-```bash
-cd zarya-api
-./mvnw spring-boot:run
+Агрегирование через функцию:
+```
+aggregated_opinion = aggregate_function(samples_X, samples_Y)
 ```
 
-## 🧮 How It Works
+**Пример выборки:**
+- Уровень безработицы: `[5.4, 5.6, 6.0, 4.9, 5.2]` → Среднее: `5.34%`
+- Отношение к реформе: `["приемлемо", "желательно", "приемлемо"]` → Мода: `"приемлемо" (67%)`
 
-The system represents party opinion as **𝓜 = (𝓧, 𝓨)**, where:
-- **𝓧** - Matrix of continuous random variables (quantitative measures)
-- **𝓨** - Matrix of categorical random variables (categorical assessments)
+## ⚡ Архитектура DAO
 
-Each cell in these matrices can only be modified through:
-1. **Proposal** - A party member proposes a new value
-2. **Voting** - The appropriate organ votes according to party charter
-3. **Aggregation** - Accepted values are added to the sample and statistics recalculated
+### Поддерживаемые органы
 
-The smart contracts enforce that only the correct party organ (Congress, Council, Regional Office, etc.) can vote on each specific topic based on matrix row encoding.
+| Орган                                  | Код        | Представляет                  | Тип голосования                    |
+| -------------------------------------- | ---------- | ----------------------------- | ---------------------------------- |
+| Съезд партии                           | `СЗД`      | Делегаты от >50% субъектов РФ | Общепартийный                      |
+| Председатель                           | `ПРЛ`      | Себя                          | Без голосования                    |
+| Центральный совет                      | `СОВ`      | Члены Центрального совета     | Межсъездовый орган                 |
+| Региональная конференция               | `НН.КОН`   | Делегаты от >50% МО в регионе | Высший орган региона               |
+| Общее собрание регионального отделения | `НН.ОБС`   | Все члены РО                  | Высший орган региона               |
+| Совет регионального отделения          | `НН.СОВ`   | Совет РО (если избран)        | Постоянно действующий региональный |
+| Общее собрание местного отделения      | `НН.Х.ОБС` | Все члены МО                  | Основной орган на местах           |
+| Совет местного отделения               | `НН.Х.СОВ` | Совет МО (если избран)        | Делегированное управление МО       |
 
-## 📊 Voting Types
+## 📊 Примеры работы
 
-- **Membership Voting** - Adding/removing party members
-- **Categorical Value Voting** - Discrete choice decisions
-- **Continuous Value Voting** - Quantitative assessments
-- **Theme Voting** - Adding new topics to matrices
-- **Statement Voting** - Defining column semantics
+<details>
+<summary><b>🌱 Экологическая инициатива</b></summary>
 
-## 🔗 Integration
+**Ячейка:** `Y[15][3]` - "Экология — 74.2.СОВ"  
+**Новое значение:** `"приемлемо"`  
+**Результат голосования:** Утверждено МО №2 Челябинской области  
 
-The three layers work together:
-1. **Contracts** store immutable voting results and matrix data on blockchain
-2. **Frontend** provides UI for members to propose and vote
-3. **API** offers additional services, analytics, and external integrations
+**Агрегированный результат:**
+- "приемлемо": 72%
+- "сомнительно": 18%  
+- "неприемлемо": 10%
 
-## 📄 License
+**Автосгенерированный текст:**
+> "Совет МО №2 Челябинской области считает экологические последствия рекультивации свалок приемлемыми (поддержка — 72% участников)."
 
-This project is licensed under CC0 1.0 Universal - see individual subproject licenses for details.
+</details>
 
-## 📚 Additional Resources
+## 🔮 Прогнозирование
 
-- [Presentation](https://docs.google.com/presentation/d/1mRsgTg3XsrVSvXpRoXnVyLOgX2QSJKPEfJUwnsZz_Uk/edit?usp=sharing) (Russian)
-- [Whitepaper](zarya-contracts/whitepaper.md) (Russian) - Detailed theoretical foundation
+### Проверка нулевой гипотезы (H₀)
 
----
+Система предсказывает изменение мнения **до** голосования:
 
-*Built for transparent, democratic, and mathematically sound party governance.*
+```python
+function predict_change(current_sample, new_value):
+    new_sample = current_sample + [new_value]
+    return will_opinion_change(new_sample)
+```
+
+**Пример:** Если добавить значение `20%` к выборке налоговой нагрузки `[13.5, 14.0, 14.2, 15.1]`:
+- Новое среднее: `15.36%` 
+- **H₀ нарушена** → мнение партии изменится
+
+## 🛠️ Технологический стек
+
+- **Solidity** + **Foundry** - смарт-контракты
+
+## 🔗 Полезные ссылки
+
+- **[Презентация](https://docs.google.com/presentation/d/1mRsgTg3XsrVSvXpRoXnVyLOgX2QSJKPEfJUwnsZz_Uk/edit?usp=sharing)** - детальный обзор системы
+
+## 🤝 Участие в проекте
+
+1. 🍴 Fork репозитория
+2. 🔨 Внесите изменения  
+3. 📤 Создайте pull request
+
+<div align="center">
+<b>Сделано с ❤️ для партии "Рассвет"</b><br>
+<sub>Версия: Челябинск | 2025</sub>
+</div>
