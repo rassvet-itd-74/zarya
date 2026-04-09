@@ -28,7 +28,7 @@ contract ZaryaUI is Zarya {
         uint256 votesFor;
         uint256 votesAgainst;
         uint256 totalVotesCast;
-        Votings.SuggestionType proposalType;
+        string proposalType;
         address subjectAddress;
         bytes32 organRaw;
         uint256 columnIndex;
@@ -39,6 +39,18 @@ contract ZaryaUI is Zarya {
         string categoryLabel;
         uint8 decimals;
         uint64 proposedValue;
+    }
+
+    struct CategoricalCellDetails {
+        uint64[] allowedCategories;
+        uint256 sampleLength;
+        string organId;
+    }
+
+    struct NumericalCellDetails {
+        uint8 decimals;
+        uint256 sampleLength;
+        string organId;
     }
 
     function organIdentifier(
@@ -228,7 +240,7 @@ contract ZaryaUI is Zarya {
         info.votesFor = r.forVotes;
         info.votesAgainst = r.againstVotes;
         info.totalVotesCast = r.totalVotes;
-        info.proposalType = v.suggestionType;
+        info.proposalType = _suggestionTypeLabel(v.suggestionType);
 
         if (v.suggestionType == Votings.SuggestionType.Membership) {
             info.subjectAddress = v.memberSuggestionData.member;
@@ -285,7 +297,51 @@ contract ZaryaUI is Zarya {
         }
     }
 
+    function categoricalCellDetails(uint256 x, uint256 y)
+        external
+        view
+        returns (CategoricalCellDetails memory details)
+    {
+        CategoricalCellInfoResult memory info = this.getCategoricalCellInfo(x, y);
+        details.allowedCategories = info.allowedCategories;
+        details.sampleLength = info.sampleLength;
+        details.organId = _toHexString(PartyOrgan.unwrap(info.organ));
+    }
+
+    function numericalCellDetails(uint256 x, uint256 y) external view returns (NumericalCellDetails memory details) {
+        NumericalCellInfoResult memory info = this.getNumericalCellInfo(x, y);
+        details.decimals = info.decimals;
+        details.sampleLength = info.sampleLength;
+        details.organId = _toHexString(PartyOrgan.unwrap(info.organ));
+    }
+
+    function _suggestionTypeLabel(Votings.SuggestionType t) internal pure returns (string memory) {
+        if (t == Votings.SuggestionType.Membership) return unicode"Членство";
+        if (t == Votings.SuggestionType.MembershipRevocation) return unicode"Отзыв членства";
+        if (t == Votings.SuggestionType.Category) return unicode"Категория";
+        if (t == Votings.SuggestionType.Decimals) return unicode"Точность";
+        if (t == Votings.SuggestionType.Theme) return unicode"Тема";
+        if (t == Votings.SuggestionType.Statement) return unicode"Высказывание";
+        if (t == Votings.SuggestionType.CategoricalValue) {
+            return unicode"Категориальное значение";
+        }
+        if (t == Votings.SuggestionType.NumericalValue) return unicode"Числовое значение";
+        return "";
+    }
+
     function _organFromId(string memory organId) internal pure returns (PartyOrgan) {
         return PartyOrgan.wrap(keccak256(abi.encodePacked(organId)));
+    }
+
+    function _toHexString(bytes32 value) internal pure returns (string memory) {
+        bytes memory hexChars = "0123456789abcdef";
+        bytes memory result = new bytes(66);
+        result[0] = "0";
+        result[1] = "x";
+        for (uint256 i = 0; i < 32; i++) {
+            result[2 + i * 2] = hexChars[uint8(value[i]) >> 4];
+            result[3 + i * 2] = hexChars[uint8(value[i]) & 0x0f];
+        }
+        return string(result);
     }
 }
