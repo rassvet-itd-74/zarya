@@ -36,12 +36,20 @@ contract ZaryaUITest is Test {
         organIds[0] = organId;
         address[] memory members = new address[](1);
         members[0] = member;
-        zaryaUI.initializeOrgansReadable(organIds, members);
+        zaryaUI.initializeReadable(
+            organIds,
+            members,
+            new string[](0),
+            new string[](0),
+            new string[](0),
+            new string[](0),
+            new ZaryaUI.CategoricalCellInit[](0)
+        );
     }
 
     // ============ Initialization Tests ============
 
-    function test_InitializeOrgansReadable_Success() public {
+    function test_InitializeReadable_Success() public {
         string[] memory organIds = new string[](3);
         organIds[0] = CHAIRPERSON_ID;
         organIds[1] = CENTRAL_SOVIET_ID;
@@ -52,7 +60,15 @@ contract ZaryaUITest is Test {
         members[1] = member1;
         members[2] = member2;
 
-        zaryaUI.initializeOrgansReadable(organIds, members);
+        zaryaUI.initializeReadable(
+            organIds,
+            members,
+            new string[](0),
+            new string[](0),
+            new string[](0),
+            new string[](0),
+            new ZaryaUI.CategoricalCellInit[](0)
+        );
 
         assertTrue(zaryaUI.checkMembership(chairman, CHAIRPERSON_ID));
         assertTrue(zaryaUI.checkMembership(member1, CENTRAL_SOVIET_ID));
@@ -60,14 +76,22 @@ contract ZaryaUITest is Test {
         assertFalse(zaryaUI.checkMembership(nonMember, CHAIRPERSON_ID));
     }
 
-    function test_InitializeOrgansReadable_RevertsOnSecondCall() public {
+    function test_InitializeReadable_RevertsOnSecondCall() public {
         _init(chairman, CHAIRPERSON_ID);
         string[] memory organIds = new string[](1);
         organIds[0] = CHAIRPERSON_ID;
         address[] memory members = new address[](1);
         members[0] = chairman;
         vm.expectRevert();
-        zaryaUI.initializeOrgansReadable(organIds, members);
+        zaryaUI.initializeReadable(
+            organIds,
+            members,
+            new string[](0),
+            new string[](0),
+            new string[](0),
+            new string[](0),
+            new ZaryaUI.CategoricalCellInit[](0)
+        );
     }
 
     // ============ Membership Check Tests ============
@@ -95,7 +119,15 @@ contract ZaryaUITest is Test {
         address[] memory members = new address[](2);
         members[0] = member1;
         members[1] = member2;
-        zaryaUI.initializeOrgansReadable(organIds, members);
+        zaryaUI.initializeReadable(
+            organIds,
+            members,
+            new string[](0),
+            new string[](0),
+            new string[](0),
+            new string[](0),
+            new ZaryaUI.CategoricalCellInit[](0)
+        );
 
         vm.prank(member1);
         assertEq(zaryaUI.proposeMembershipRevocation(CENTRAL_SOVIET_ID, member2, DEFAULT_DURATION), 1);
@@ -301,7 +333,15 @@ contract ZaryaUITest is Test {
         address[] memory members = new address[](2);
         members[0] = chairman;
         members[1] = member1;
-        zaryaUI.initializeOrgansReadable(organIds, members);
+        zaryaUI.initializeReadable(
+            organIds,
+            members,
+            new string[](0),
+            new string[](0),
+            new string[](0),
+            new string[](0),
+            new ZaryaUI.CategoricalCellInit[](0)
+        );
 
         vm.prank(member1);
         vm.expectRevert();

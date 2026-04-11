@@ -10,500 +10,363 @@ import {ZaryaUI} from "../src/ZaryaUI.sol";
 ///   forge script script/ZaryaUI.s.sol --rpc-url <RPC> --broadcast --sender <DEPLOYER>
 ///
 /// Переменные окружения (задать перед запуском):
-///   MEMBER_01 .. MEMBER_12 — адреса 12 членов Совета РО
-///   ZARYA_ADDRESS           — адрес уже задеплоенного контракта (если
-/// пропустить деплой)
+///   MEMBERS — адреса членов Совета РО через запятую
 contract ZaryaUIScript is Script {
-    // ── Продолжительность голосований в секундах
-    // ──────────────────────────
-    // Схемные голосования — короткие, т.к. сразу исполняем в этом же
-    // скрипте.
-    uint256 constant SCHEMA_DURATION = 1;
     // Голосования шага 4 задаются вручную через abi.ninja.
     // Для тестовой сети рекомендуем duration = 60 (1 минута).
 
-    // ── Кворум и порог для схемных голосований
-    // ───────────────────────────
+    // Кворум и порог для голосований за точность (decimals)
+    uint256 constant SCHEMA_DURATION = 1;
     uint256 constant QUORUM = 1;
     uint256 constant APPROVAL = 51;
 
     string constant ORGAN = unicode"74.СОВ";
 
     function run() public {
-        // Читаем адреса членов из окружения. Если переменная не
-        // задана — адрес нулевой,
-        // и контракт ревертнётся сам с InvalidMemberAddress.
-        address[12] memory members = [
-            vm.envOr("MEMBER_01", address(0)),
-            vm.envOr("MEMBER_02", address(0)),
-            vm.envOr("MEMBER_03", address(0)),
-            vm.envOr("MEMBER_04", address(0)),
-            vm.envOr("MEMBER_05", address(0)),
-            vm.envOr("MEMBER_06", address(0)),
-            vm.envOr("MEMBER_07", address(0)),
-            vm.envOr("MEMBER_08", address(0)),
-            vm.envOr("MEMBER_09", address(0)),
-            vm.envOr("MEMBER_10", address(0)),
-            vm.envOr("MEMBER_11", address(0)),
-            vm.envOr("MEMBER_12", address(0))
-        ];
+        address[] memory memberAddrs = vm.envAddress("MEMBERS", ",");
+        uint256 memberCount = memberAddrs.length;
 
         vm.startBroadcast();
 
-        // ── 1. Деплой
-        // ─────────────────────────────────────────────────────
+        // 1. Деплой
         ZaryaUI zarya = new ZaryaUI();
         console.log("ZaryaUI deployed at:", address(zarya));
 
-        // ── 2. Инициализация всех 12 членов одним вызовом
-        // ────────────────
-        string[] memory organIds = new string[](12);
-        address[] memory memberAddrs = new address[](12);
-        for (uint256 i = 0; i < 12; i++) {
+        // 2. Инициализация: члены + вся схема матрицы в одном вызове.
+        //    Темы, высказывания и категории устанавливаются напрямую
+        // без голосований.
+        //    Остаются только голосования за точность числовых
+        // значений (decimals).
+        string[] memory organIds = new string[](memberCount);
+        for (uint256 i = 0; i < memberCount; i++) {
             organIds[i] = ORGAN;
-            memberAddrs[i] = members[i];
         }
-        zarya.initializeOrgansReadable(organIds, memberAddrs);
-        console.log("12 members initialized");
+        zarya.initializeReadable(
+            organIds, memberAddrs, _catThemes(), _catStatements(), _numThemes(), _numStatements(), _catCells()
+        );
+        console.log("Members and schema initialized");
 
-        // ── 3. Схема матрицы
-        // ──────────────────────────────────────────────
-        _setupSchema(zarya);
+        // 3. Голосования за точность числовых ячеек
+        _setupDecimals(zarya);
 
         vm.stopBroadcast();
     }
 
-    /// @dev Создаёт все голосования схемы и сразу исполняет их (quorum=1,
-    /// duration=1s).
-    ///      Все вызовы идут от msg.sender (broadcaster), который является членом
-    /// органа.
-    function _setupSchema(ZaryaUI zarya) internal {
-        // ── S_Y: 16 категориальных столбцов (y = x для уникальности
-        // слота) ──
+    // Данные схемы
+
+    function _catThemes() internal pure returns (string[] memory t) {
+        t = new string[](15);
+        t[0] = unicode"Экология";
+        t[1] = unicode"Внутренняя политика";
+        t[2] = unicode"Внешняя политика";
+        t[3] = unicode"Внешняя политика";
+        t[4] = unicode"Свобода интернета";
+        t[5] = unicode"Внешняя политика";
+        t[6] = unicode"Внешняя политика";
+        t[7] = unicode"Работа РО";
+        t[8] = unicode"Организация работы РО";
+        t[9] = unicode"Внутренняя политика партии";
+        t[10] = unicode"Внутренняя политика партии";
+        t[11] = unicode"Внутренняя политика партии";
+        t[12] = unicode"Внутренняя политика партии";
+        t[13] = unicode"Организация работы РО";
+        t[14] = unicode"Союз с другими политическими силами";
+    }
+
+    function _catStatements() internal pure returns (string[] memory s) {
+        s = new string[](15);
+        s[0] = unicode"Совет РО считает, что количество выбросов {{value}}.";
+        s[1] =
+            unicode"Совет РО считает свои действия {{value}} сопричастными действиям органа центрального руководства Партии.";
+        s[2] =
+            unicode"Совет РО считает, что замороженные ЕС средства нужно отдать РФ на восстановление Курской и Белгородской области";
+        s[3] =
+            unicode"Совет РО считает, что в платформе ПАСЕ должны быть представители оппозиции, проживающие на территории РФ";
+        s[4] =
+            unicode"Совет РО считает, что нужно призывать население не использовать МАХ";
+        s[5] =
+            unicode"Совет РО считает, что недопустимо поднимать вопрос о разморозке активов ЕС до подписания мирного договора";
+        s[6] =
+            unicode"Совет РО считает, что главные проблемы страны сегодня, это {{value}}";
+        s[7] =
+            unicode"Совет РО считает, что следующая ({{value}}) партийная активность является политической";
+        s[8] = unicode"Совет РО считает, что взносы должны идти на {{value}}";
+        s[9] =
+            unicode"Совет РО считает, что допустима самоцензура в официальных социальных сетях регионального отделения";
+        s[10] =
+            unicode"Совет РО считает, что партия «Рассвет» и её представители должны вести более активную информационную деятельность в СМИ и соцсетях";
+        s[11] =
+            unicode"Совет РО считает, что курс политической партии «Рассвет» понятен ({{value}})";
+        s[12] =
+            unicode"Совет РО считает, что в политической партии «Рассвет» должен быть менеджер по связям с общественностью/СМИ ({{value}})";
+        s[13] =
+            unicode"Совет РО считает, что РО проводит успешно ({{value}}) мероприятия";
+        s[14] =
+            unicode"Совет РО считает, что необходимо ({{value}}) сотрудничать с другими политическими силами Челябинской области";
+    }
+
+    function _numThemes() internal pure returns (string[] memory t) {
+        t = new string[](9);
+        t[0] = unicode"Внутренняя политика";
+        t[1] = unicode"Внутренняя политика";
+        t[2] = unicode"Организация работы РО";
+        t[3] = unicode"Электоральная политика партии";
+        t[4] = unicode"Внутренняя политика партии";
+        t[5] = unicode"Организация работы РО";
+        t[6] = unicode"Организация работы РО";
+        t[7] = unicode"Организация работы РО";
+        t[8] = unicode"Организация работы РО";
+    }
+
+    function _numStatements() internal pure returns (string[] memory s) {
+        s = new string[](9);
+        s[0] =
+            unicode"Совет РО считает, что количество средств от спонсоров для эффективной деятельности РО должно равняться как минимум {{value}}";
+        s[1] =
+            unicode"Совет РО считает, что количество сторонников РО необходимое для узнаваемости партии равняется {{value}}";
+        s[2] =
+            unicode"Совет РО считает, что минимальные взносы должны составлять {{value}}";
+        s[3] =
+            unicode"Совет РО считает, что если бы партия «Рассвет» была официально допущена к выборам в Государственную Думу, то она набрала бы {{value}} процентов избирателей";
+        s[4] =
+            unicode"Совет РО считает, что член регионального отделения может уделять {{value}} часов на деятельности партии в неделю";
+        s[5] =
+            unicode"Совет РО считает, что региональное отделение партии должно организовывать {{value}} очных мероприятий в месяц";
+        s[6] =
+            unicode"Совет РО считает, что минимальный бюджет регионального отделения партии для эффективной деятельности в месяц должен составлять {{value}} рублей";
+        s[7] =
+            unicode"Совет РО считает, что для узнаваемости регионального отделения у него должно быть {{value}} сторонников";
+        s[8] =
+            unicode"Совет РО оценивает работу регионального отделения за год как {{value}} из 7, где 1 — неэффективно, 7 — максимально эффективно";
+    }
+
+    function _catCells() internal pure returns (ZaryaUI.CategoricalCellInit[] memory cells) {
+        cells = new ZaryaUI.CategoricalCellInit[](15);
 
         // x=0 | Экология
-        _schemaCategory(
-            zarya,
-            true,
-            0,
-            unicode"Экология",
-            unicode"Совет РО считает, что количество выбросов X."
-        );
-        _execVoting(zarya, zarya.proposeCategory(ORGAN, 0, 0, 1, unicode"Приемлемо", SCHEMA_DURATION));
-        _execVoting(zarya, zarya.proposeCategory(ORGAN, 0, 0, 2, unicode"Неприемлемо", SCHEMA_DURATION));
-        _execVoting(
-            zarya,
-            zarya.proposeCategory(
-                ORGAN,
-                0,
-                0,
-                3,
-                unicode"Неизвестно и сделать вывод невозможно",
-                SCHEMA_DURATION
-            )
-        );
+        cells[0].x = 0;
+        cells[0].y = 0;
+        cells[0].organId = ORGAN;
+        cells[0].categoryIds = new uint64[](3);
+        cells[0].categoryLabels = new string[](3);
+        cells[0].categoryIds[0] = 1;
+        cells[0].categoryLabels[0] = unicode"Приемлемо";
+        cells[0].categoryIds[1] = 2;
+        cells[0].categoryLabels[1] = unicode"Неприемлемо";
+        cells[0].categoryIds[2] = 3;
+        cells[0].categoryLabels[2] = unicode"Неизвестно и сделать вывод невозможно";
 
         // x=1 | Внутренняя политика
-        _schemaCategory(
-            zarya,
-            true,
-            1,
-            unicode"Внутренняя политика",
-            unicode"Совет РО считает свои действия X сопричастными действиям органа центрального руководства Партии."
-        );
-        _execVoting(zarya, zarya.proposeCategory(ORGAN, 1, 1, 1, unicode"Абсолютно", SCHEMA_DURATION));
-        _execVoting(zarya, zarya.proposeCategory(ORGAN, 1, 1, 2, unicode"Скорее", SCHEMA_DURATION));
-        _execVoting(zarya, zarya.proposeCategory(ORGAN, 1, 1, 3, unicode"Скорее не", SCHEMA_DURATION));
-        _execVoting(zarya, zarya.proposeCategory(ORGAN, 1, 1, 4, unicode"Не", SCHEMA_DURATION));
+        cells[1].x = 1;
+        cells[1].y = 1;
+        cells[1].organId = ORGAN;
+        cells[1].categoryIds = new uint64[](4);
+        cells[1].categoryLabels = new string[](4);
+        cells[1].categoryIds[0] = 1;
+        cells[1].categoryLabels[0] = unicode"Абсолютно";
+        cells[1].categoryIds[1] = 2;
+        cells[1].categoryLabels[1] = unicode"Скорее";
+        cells[1].categoryIds[2] = 3;
+        cells[1].categoryLabels[2] = unicode"Скорее не";
+        cells[1].categoryIds[3] = 4;
+        cells[1].categoryLabels[3] = unicode"Не";
 
-        // x=2 | Организация работы РО — оценка за год [1..7]
-        _schemaCategory(
-            zarya,
-            true,
-            2,
-            unicode"Организация работы РО",
-            unicode"Члены нашего РО оценивают нашу работу за год как Х"
-        );
-        _execVoting(
-            zarya, zarya.proposeCategory(ORGAN, 2, 2, 1, unicode"1 — неэффективно", SCHEMA_DURATION)
-        );
-        _execVoting(zarya, zarya.proposeCategory(ORGAN, 2, 2, 2, unicode"2", SCHEMA_DURATION));
-        _execVoting(zarya, zarya.proposeCategory(ORGAN, 2, 2, 3, unicode"3", SCHEMA_DURATION));
-        _execVoting(zarya, zarya.proposeCategory(ORGAN, 2, 2, 4, unicode"4", SCHEMA_DURATION));
-        _execVoting(zarya, zarya.proposeCategory(ORGAN, 2, 2, 5, unicode"5", SCHEMA_DURATION));
-        _execVoting(zarya, zarya.proposeCategory(ORGAN, 2, 2, 6, unicode"6", SCHEMA_DURATION));
-        _execVoting(
-            zarya,
-            zarya.proposeCategory(
-                ORGAN, 2, 2, 7, unicode"7 — максимально эффективно", SCHEMA_DURATION
-            )
-        );
+        // x=2..5, 10 | Да / Нет / Не знаю
+        _fillYesNoUnknown(cells, 2);
+        _fillYesNoUnknown(cells, 3);
+        _fillYesNoUnknown(cells, 4);
+        _fillYesNoUnknown(cells, 5);
+        _fillYesNoUnknown(cells, 10);
 
-        // x=3 | Внешняя политика — замороженные ЕС средства
-        _schemaCategory(
-            zarya,
-            true,
-            3,
-            unicode"Внешняя политика",
-            unicode"Совет РО считает, что замороженные ЕС средства нужно отдать РФ на восстановление Курской и Белгородской области"
-        );
-        _addYesNoUnknown(zarya, 3, 3);
+        // x=6 | Внешняя политика — главные проблемы страны [11
+        // категорий]
+        cells[6].x = 6;
+        cells[6].y = 6;
+        cells[6].organId = ORGAN;
+        cells[6].categoryIds = new uint64[](11);
+        cells[6].categoryLabels = new string[](11);
+        cells[6].categoryIds[0] = 1;
+        cells[6].categoryLabels[0] = unicode"война";
+        cells[6].categoryIds[1] = 2;
+        cells[6].categoryLabels[1] = unicode"путин";
+        cells[6].categoryIds[2] = 3;
+        cells[6].categoryLabels[2] = unicode"репрессии";
+        cells[6].categoryIds[3] = 4;
+        cells[6].categoryLabels[3] = unicode"коррупция";
+        cells[6].categoryIds[4] = 5;
+        cells[6].categoryLabels[4] = unicode"пропаганда";
+        cells[6].categoryIds[5] = 6;
+        cells[6].categoryLabels[5] = unicode"экология";
+        cells[6].categoryIds[6] = 7;
+        cells[6].categoryLabels[6] = unicode"транспорт";
+        cells[6].categoryIds[7] = 8;
+        cells[6].categoryLabels[7] = unicode"блокировки интернета";
+        cells[6].categoryIds[8] = 9;
+        cells[6].categoryLabels[8] = unicode"образование";
+        cells[6].categoryIds[9] = 10;
+        cells[6].categoryLabels[9] = unicode"здравоохранение";
+        cells[6].categoryIds[10] = 11;
+        cells[6].categoryLabels[10] = unicode"другое";
 
-        // x=4 | Внешняя политика — ПАСЕ и оппозиция
-        _schemaCategory(
-            zarya,
-            true,
-            4,
-            unicode"Внешняя политика",
-            unicode"Совет РО считает, что в платформе ПАСЕ должны быть представители оппозиции, проживающие на территории РФ"
-        );
-        _addYesNoUnknown(zarya, 4, 4);
+        // x=7 | Работа РО — политическая активность [11 категорий]
+        cells[7].x = 7;
+        cells[7].y = 7;
+        cells[7].organId = ORGAN;
+        cells[7].categoryIds = new uint64[](11);
+        cells[7].categoryLabels = new string[](11);
+        cells[7].categoryIds[0] = 1;
+        cells[7].categoryLabels[0] = unicode"письма ПЗК";
+        cells[7].categoryIds[1] = 2;
+        cells[7].categoryLabels[1] = unicode"митинги";
+        cells[7].categoryIds[2] = 3;
+        cells[7].categoryLabels[2] = unicode"благотворительные акции";
+        cells[7].categoryIds[3] = 4;
+        cells[7].categoryLabels[3] = unicode"петиции";
+        cells[7].categoryIds[4] = 5;
+        cells[7].categoryLabels[4] = unicode"обращения в госорганы";
+        cells[7].categoryIds[5] = 6;
+        cells[7].categoryLabels[5] = unicode"экоакции";
+        cells[7].categoryIds[6] = 7;
+        cells[7].categoryLabels[6] = unicode"зоозащита";
+        cells[7].categoryIds[7] = 8;
+        cells[7].categoryLabels[7] = unicode"дебаты";
+        cells[7].categoryIds[8] = 9;
+        cells[7].categoryLabels[8] = unicode"киноклуб";
+        cells[7].categoryIds[9] = 10;
+        cells[7].categoryLabels[9] = unicode"выборы";
+        cells[7].categoryIds[10] = 11;
+        cells[7].categoryLabels[10] = unicode"другое";
 
-        // x=5 | Свобода интернета — МАХ
-        _schemaCategory(
-            zarya,
-            true,
-            5,
-            unicode"Свобода интернета",
-            unicode"Совет РО считает, что нужно призывать население не использовать МАХ"
-        );
-        _addYesNoUnknown(zarya, 5, 5);
+        // x=8 | Организация работы РО — куда идут взносы [6 категорий]
+        cells[8].x = 8;
+        cells[8].y = 8;
+        cells[8].organId = ORGAN;
+        cells[8].categoryIds = new uint64[](6);
+        cells[8].categoryLabels = new string[](6);
+        cells[8].categoryIds[0] = 1;
+        cells[8].categoryLabels[0] = unicode"премии";
+        cells[8].categoryIds[1] = 2;
+        cells[8].categoryLabels[1] = unicode"аренду помещения под собрания";
+        cells[8].categoryIds[2] = 3;
+        cells[8].categoryLabels[2] = unicode"юрист";
+        cells[8].categoryIds[3] = 4;
+        cells[8].categoryLabels[3] = unicode"ЧП";
+        cells[8].categoryIds[4] = 5;
+        cells[8].categoryLabels[4] = unicode"аренду оборудования";
+        cells[8].categoryIds[5] = 6;
+        cells[8].categoryLabels[5] = unicode"другое";
 
-        // x=6 | Внешняя политика — разморозка активов ЕС
-        _schemaCategory(
-            zarya,
-            true,
-            6,
-            unicode"Внешняя политика",
-            unicode"Совет РО считает, что недопустимо поднимать вопрос о разморозке активов ЕС до подписания мирного договора"
-        );
-        _addYesNoUnknown(zarya, 6, 6);
+        // x=9 | Внутренняя политика партии — самоцензура [5 категорий]
+        cells[9].x = 9;
+        cells[9].y = 9;
+        cells[9].organId = ORGAN;
+        cells[9].categoryIds = new uint64[](5);
+        cells[9].categoryLabels = new string[](5);
+        cells[9].categoryIds[0] = 1;
+        cells[9].categoryLabels[0] = unicode"Абсолютно допустима";
+        cells[9].categoryIds[1] = 2;
+        cells[9].categoryLabels[1] = unicode"скорее допустима";
+        cells[9].categoryIds[2] = 3;
+        cells[9].categoryLabels[2] = unicode"не знаю";
+        cells[9].categoryIds[3] = 4;
+        cells[9].categoryLabels[3] = unicode"скорее не допустима";
+        cells[9].categoryIds[4] = 5;
+        cells[9].categoryLabels[4] = unicode"абсолютно недопустима";
 
-        // x=7 | Внешняя политика — главные проблемы страны
-        _schemaCategory(
-            zarya,
-            true,
-            7,
-            unicode"Внешняя политика",
-            unicode"Совет РО считает, что главные проблемы страны сегодня, это Х"
-        );
-        _execVoting(zarya, zarya.proposeCategory(ORGAN, 7, 7, 1, unicode"война", SCHEMA_DURATION));
-        _execVoting(zarya, zarya.proposeCategory(ORGAN, 7, 7, 2, unicode"путин", SCHEMA_DURATION));
-        _execVoting(zarya, zarya.proposeCategory(ORGAN, 7, 7, 3, unicode"репрессии", SCHEMA_DURATION));
-        _execVoting(zarya, zarya.proposeCategory(ORGAN, 7, 7, 4, unicode"коррупция", SCHEMA_DURATION));
-        _execVoting(zarya, zarya.proposeCategory(ORGAN, 7, 7, 5, unicode"пропаганда", SCHEMA_DURATION));
-        _execVoting(zarya, zarya.proposeCategory(ORGAN, 7, 7, 6, unicode"экология", SCHEMA_DURATION));
-        _execVoting(zarya, zarya.proposeCategory(ORGAN, 7, 7, 7, unicode"транспорт", SCHEMA_DURATION));
-        _execVoting(
-            zarya,
-            zarya.proposeCategory(ORGAN, 7, 7, 8, unicode"блокировки интернета", SCHEMA_DURATION)
-        );
-        _execVoting(zarya, zarya.proposeCategory(ORGAN, 7, 7, 9, unicode"образование", SCHEMA_DURATION));
-        _execVoting(
-            zarya, zarya.proposeCategory(ORGAN, 7, 7, 10, unicode"здравоохранение", SCHEMA_DURATION)
-        );
-        _execVoting(zarya, zarya.proposeCategory(ORGAN, 7, 7, 11, unicode"другое", SCHEMA_DURATION));
+        // x=11 | Внутренняя политика партии — понятность курса [4
+        // категории]
+        cells[11].x = 11;
+        cells[11].y = 11;
+        cells[11].organId = ORGAN;
+        cells[11].categoryIds = new uint64[](4);
+        cells[11].categoryLabels = new string[](4);
+        cells[11].categoryIds[0] = 1;
+        cells[11].categoryLabels[0] = unicode"Абсолютно понятен";
+        cells[11].categoryIds[1] = 2;
+        cells[11].categoryLabels[1] = unicode"скорее понятен";
+        cells[11].categoryIds[2] = 3;
+        cells[11].categoryLabels[2] = unicode"скорее не понятен";
+        cells[11].categoryIds[3] = 4;
+        cells[11].categoryLabels[3] = unicode"абсолютно не понятен";
 
-        // x=8 | Работа РО — политическая активность
-        _schemaCategory(
-            zarya,
-            true,
-            8,
-            unicode"Работа РО",
-            unicode"Совет РО считает, что следующая (Х) партийная активность является политической"
-        );
-        _execVoting(zarya, zarya.proposeCategory(ORGAN, 8, 8, 1, unicode"письма ПЗК", SCHEMA_DURATION));
-        _execVoting(zarya, zarya.proposeCategory(ORGAN, 8, 8, 2, unicode"митинги", SCHEMA_DURATION));
-        _execVoting(
-            zarya,
-            zarya.proposeCategory(
-                ORGAN, 8, 8, 3, unicode"благотворительные акции", SCHEMA_DURATION
-            )
-        );
-        _execVoting(zarya, zarya.proposeCategory(ORGAN, 8, 8, 4, unicode"петиции", SCHEMA_DURATION));
-        _execVoting(
-            zarya,
-            zarya.proposeCategory(ORGAN, 8, 8, 5, unicode"обращения в госорганы", SCHEMA_DURATION)
-        );
-        _execVoting(zarya, zarya.proposeCategory(ORGAN, 8, 8, 6, unicode"экоакции", SCHEMA_DURATION));
-        _execVoting(zarya, zarya.proposeCategory(ORGAN, 8, 8, 7, unicode"зоозащита", SCHEMA_DURATION));
-        _execVoting(zarya, zarya.proposeCategory(ORGAN, 8, 8, 8, unicode"дебаты", SCHEMA_DURATION));
-        _execVoting(zarya, zarya.proposeCategory(ORGAN, 8, 8, 9, unicode"киноклуб", SCHEMA_DURATION));
-        _execVoting(zarya, zarya.proposeCategory(ORGAN, 8, 8, 10, unicode"выборы", SCHEMA_DURATION));
-        _execVoting(zarya, zarya.proposeCategory(ORGAN, 8, 8, 11, unicode"другое", SCHEMA_DURATION));
+        // x=12 | Внутренняя политика партии — менеджер по PR [4 категории]
+        cells[12].x = 12;
+        cells[12].y = 12;
+        cells[12].organId = ORGAN;
+        cells[12].categoryIds = new uint64[](4);
+        cells[12].categoryLabels = new string[](4);
+        cells[12].categoryIds[0] = 1;
+        cells[12].categoryLabels[0] = unicode"Абсолютно согласен";
+        cells[12].categoryIds[1] = 2;
+        cells[12].categoryLabels[1] = unicode"скорее согласен";
+        cells[12].categoryIds[2] = 3;
+        cells[12].categoryLabels[2] = unicode"скорее не согласен";
+        cells[12].categoryIds[3] = 4;
+        cells[12].categoryLabels[3] = unicode"абсолютно не согласен";
 
-        // x=9 | Организация работы РО — куда идут взносы
-        _schemaCategory(
-            zarya,
-            true,
-            9,
-            unicode"Организация работы РО",
-            unicode"Совет РО считает, что взносы должны идти на Х"
-        );
-        _execVoting(zarya, zarya.proposeCategory(ORGAN, 9, 9, 1, unicode"премии", SCHEMA_DURATION));
-        _execVoting(
-            zarya,
-            zarya.proposeCategory(
-                ORGAN, 9, 9, 2, unicode"аренда помещения под собрания", SCHEMA_DURATION
-            )
-        );
-        _execVoting(zarya, zarya.proposeCategory(ORGAN, 9, 9, 3, unicode"юрист", SCHEMA_DURATION));
-        _execVoting(zarya, zarya.proposeCategory(ORGAN, 9, 9, 4, unicode"ЧП", SCHEMA_DURATION));
-        _execVoting(
-            zarya,
-            zarya.proposeCategory(ORGAN, 9, 9, 5, unicode"аренда оборудования", SCHEMA_DURATION)
-        );
-        _execVoting(zarya, zarya.proposeCategory(ORGAN, 9, 9, 6, unicode"другое", SCHEMA_DURATION));
+        // x=13 | Организация работы РО — успешность мероприятий [4
+        // категории]
+        cells[13].x = 13;
+        cells[13].y = 13;
+        cells[13].organId = ORGAN;
+        cells[13].categoryIds = new uint64[](4);
+        cells[13].categoryLabels = new string[](4);
+        cells[13].categoryIds[0] = 1;
+        cells[13].categoryLabels[0] = unicode"Успешно";
+        cells[13].categoryIds[1] = 2;
+        cells[13].categoryLabels[1] = unicode"Скорее успешно";
+        cells[13].categoryIds[2] = 3;
+        cells[13].categoryLabels[2] = unicode"Скорее не успешно";
+        cells[13].categoryIds[3] = 4;
+        cells[13].categoryLabels[3] = unicode"Безуспешно";
 
-        // x=10 | Внутренняя политика партии — самоцензура
-        _schemaCategory(
-            zarya,
-            true,
-            10,
-            unicode"Внутренняя политика партии",
-            unicode"Совет РО считает, что допустима самоцензура в официальных социальных сетях регионального отделения"
-        );
-        _execVoting(
-            zarya,
-            zarya.proposeCategory(ORGAN, 10, 10, 1, unicode"Абсолютно допустима", SCHEMA_DURATION)
-        );
-        _execVoting(
-            zarya, zarya.proposeCategory(ORGAN, 10, 10, 2, unicode"скорее допустима", SCHEMA_DURATION)
-        );
-        _execVoting(zarya, zarya.proposeCategory(ORGAN, 10, 10, 3, unicode"не знаю", SCHEMA_DURATION));
-        _execVoting(
-            zarya,
-            zarya.proposeCategory(ORGAN, 10, 10, 4, unicode"скорее не допустима", SCHEMA_DURATION)
-        );
-        _execVoting(
-            zarya,
-            zarya.proposeCategory(ORGAN, 10, 10, 5, unicode"абсолютно недопустима", SCHEMA_DURATION)
-        );
-
-        // x=11 | Внутренняя политика партии — активность в СМИ
-        _schemaCategory(
-            zarya,
-            true,
-            11,
-            unicode"Внутренняя политика партии",
-            unicode"Совет РО считает, что партия «Рассвет» и её представители должны вести более активную информационную деятельность в СМИ и соцсетях"
-        );
-        _addYesNoUnknown(zarya, 11, 11);
-
-        // x=12 | Внутренняя политика партии — понятность курса
-        _schemaCategory(
-            zarya,
-            true,
-            12,
-            unicode"Внутренняя политика партии",
-            unicode"Совет РО считает, что курс политической партии «Рассвет» понятен (X)"
-        );
-        _execVoting(
-            zarya, zarya.proposeCategory(ORGAN, 12, 12, 1, unicode"Абсолютно понятен", SCHEMA_DURATION)
-        );
-        _execVoting(
-            zarya, zarya.proposeCategory(ORGAN, 12, 12, 2, unicode"скорее понятен", SCHEMA_DURATION)
-        );
-        _execVoting(
-            zarya, zarya.proposeCategory(ORGAN, 12, 12, 3, unicode"скорее не понятен", SCHEMA_DURATION)
-        );
-        _execVoting(
-            zarya,
-            zarya.proposeCategory(ORGAN, 12, 12, 4, unicode"абсолютно не понятен", SCHEMA_DURATION)
-        );
-
-        // x=13 | Внутренняя политика партии — менеджер по PR
-        _schemaCategory(
-            zarya,
-            true,
-            13,
-            unicode"Внутренняя политика партии",
-            unicode"Совет РО считает, что в политической партии «Рассвет» должен быть менеджер по связям с общественностью/СМИ (X)"
-        );
-        _execVoting(
-            zarya,
-            zarya.proposeCategory(ORGAN, 13, 13, 1, unicode"Абсолютно согласен", SCHEMA_DURATION)
-        );
-        _execVoting(
-            zarya, zarya.proposeCategory(ORGAN, 13, 13, 2, unicode"скорее согласен", SCHEMA_DURATION)
-        );
-        _execVoting(
-            zarya, zarya.proposeCategory(ORGAN, 13, 13, 3, unicode"скорее не согласен", SCHEMA_DURATION)
-        );
-        _execVoting(
-            zarya,
-            zarya.proposeCategory(ORGAN, 13, 13, 4, unicode"абсолютно не согласен", SCHEMA_DURATION)
-        );
-
-        // x=14 | Организация работы РО — успешность мероприятий
-        _schemaCategory(
-            zarya,
-            true,
-            14,
-            unicode"Организация работы РО",
-            unicode"Совет РО считает, что РО проводит успешно (X) мероприятия"
-        );
-        _execVoting(zarya, zarya.proposeCategory(ORGAN, 14, 14, 1, unicode"Успешно", SCHEMA_DURATION));
-        _execVoting(
-            zarya, zarya.proposeCategory(ORGAN, 14, 14, 2, unicode"Скорее успешно", SCHEMA_DURATION)
-        );
-        _execVoting(
-            zarya, zarya.proposeCategory(ORGAN, 14, 14, 3, unicode"Скорее не успешно", SCHEMA_DURATION)
-        );
-        _execVoting(zarya, zarya.proposeCategory(ORGAN, 14, 14, 4, unicode"Безуспешно", SCHEMA_DURATION));
-
-        // x=15 | Союз с другими политическими силами
-        _schemaCategory(
-            zarya,
-            true,
-            15,
-            unicode"Союз с другими политическими силами",
-            unicode"Совет РО считает, что необходимо (X) сотрудничать с другими политическими силами Челябинской области"
-        );
-        _execVoting(
-            zarya,
-            zarya.proposeCategory(ORGAN, 15, 15, 1, unicode"Абсолютно согласен", SCHEMA_DURATION)
-        );
-        _execVoting(
-            zarya, zarya.proposeCategory(ORGAN, 15, 15, 2, unicode"скорее согласен", SCHEMA_DURATION)
-        );
-        _execVoting(
-            zarya, zarya.proposeCategory(ORGAN, 15, 15, 3, unicode"скорее не согласен", SCHEMA_DURATION)
-        );
-        _execVoting(
-            zarya,
-            zarya.proposeCategory(ORGAN, 15, 15, 4, unicode"абсолютно не согласен", SCHEMA_DURATION)
-        );
-
-        // ── S_X: 8 числовых столбцов (y = x)
-        // ─────────────────────────────
-
-        // x=0 | Внутренняя политика — средства от спонсоров (decimals=2)
-        _schemaDecimals(
-            zarya,
-            false,
-            0,
-            2,
-            unicode"Внутренняя политика",
-            unicode"Совет РО считает, что количество средств от спонсоров для эффективной деятельности РО должно равняться как минимум Х"
-        );
-
-        // x=1 | Внутренняя политика — сторонники для узнаваемости
-        // партии
-        _schemaDecimals(
-            zarya,
-            false,
-            1,
-            0,
-            unicode"Внутренняя политика",
-            unicode"Совет РО считает, что количество сторонников РО необходимое для узнаваемости партии равняется Х"
-        );
-
-        // x=2 | Организация работы РО — минимальные взносы
-        _schemaDecimals(
-            zarya,
-            false,
-            2,
-            0,
-            unicode"Организация работы РО",
-            unicode"Совет РО считает, что минимальные взносы должны составлять Х"
-        );
-
-        // x=3 | Электоральная политика партии — % на выборах в ГД
-        _schemaDecimals(
-            zarya,
-            false,
-            3,
-            0,
-            unicode"Электоральная политика партии",
-            unicode"Совет РО считает, что если бы партия «Рассвет» была официально допущена к выборам в Государственную Думу, то она набрала бы X процентов избирателей"
-        );
-
-        // x=4 | Внутренняя политика партии — часов в неделю на партию
-        _schemaDecimals(
-            zarya,
-            false,
-            4,
-            0,
-            unicode"Внутренняя политика партии",
-            unicode"Совет РО считает, что член регионального отделения может уделять X часов на деятельности партии в неделю"
-        );
-
-        // x=5 | Организация работы РО — мероприятий в месяц
-        _schemaDecimals(
-            zarya,
-            false,
-            5,
-            0,
-            unicode"Организация работы РО",
-            unicode"Совет РО считает, что региональное отделение партии должно организовывать X очных мероприятий в месяц"
-        );
-
-        // x=6 | Организация работы РО — минимальный бюджет в месяц
-        _schemaDecimals(
-            zarya,
-            false,
-            6,
-            0,
-            unicode"Организация работы РО",
-            unicode"Совет РО считает, что минимальный бюджет регионального отделения партии для эффективной деятельности в месяц должен составлять X рублей"
-        );
-
-        // x=7 | Организация работы РО — сторонники для узнаваемости РО
-        _schemaDecimals(
-            zarya,
-            false,
-            7,
-            0,
-            unicode"Организация работы РО",
-            unicode"Совет РО считает, что для узнаваемости регионального отделения у него должно быть X сторонников"
-        );
-
-        console.log("Schema setup complete");
+        // x=14 | Союз с другими политическими силами [4 категории]
+        cells[14].x = 14;
+        cells[14].y = 14;
+        cells[14].organId = ORGAN;
+        cells[14].categoryIds = new uint64[](4);
+        cells[14].categoryLabels = new string[](4);
+        cells[14].categoryIds[0] = 1;
+        cells[14].categoryLabels[0] = unicode"Абсолютно согласен";
+        cells[14].categoryIds[1] = 2;
+        cells[14].categoryLabels[1] = unicode"скорее согласен";
+        cells[14].categoryIds[2] = 3;
+        cells[14].categoryLabels[2] = unicode"скорее не согласен";
+        cells[14].categoryIds[3] = 4;
+        cells[14].categoryLabels[3] = unicode"абсолютно не согласен";
     }
 
-    // ── Вспомогательные функции
-    // ───────────────────────────────────────────
-
-    /// @dev Создаёт Theme + Statement голосования и сразу исполняет их.
-    function _schemaCategory(
-        ZaryaUI zarya,
-        bool isCategorical,
-        uint256 x,
-        string memory theme,
-        string memory statement
-    )
-        internal
-    {
-        _execVoting(zarya, zarya.proposeThemeLabel(isCategorical, x, theme, SCHEMA_DURATION));
-        _execVoting(zarya, zarya.proposeStatementLabel(isCategorical, x, x, statement, SCHEMA_DURATION));
+    function _fillYesNoUnknown(ZaryaUI.CategoricalCellInit[] memory cells, uint256 idx) internal pure {
+        cells[idx].x = idx;
+        cells[idx].y = idx;
+        cells[idx].organId = ORGAN;
+        cells[idx].categoryIds = new uint64[](3);
+        cells[idx].categoryLabels = new string[](3);
+        cells[idx].categoryIds[0] = 1;
+        cells[idx].categoryLabels[0] = unicode"Да";
+        cells[idx].categoryIds[1] = 2;
+        cells[idx].categoryLabels[1] = unicode"Нет";
+        cells[idx].categoryIds[2] = 3;
+        cells[idx].categoryLabels[2] = unicode"Не знаю";
     }
 
-    /// @dev Создаёт Theme + Statement + Decimals голосования и сразу исполняет их.
-    function _schemaDecimals(
-        ZaryaUI zarya,
-        bool isCategorical,
-        uint256 x,
-        uint8 decimals,
-        string memory theme,
-        string memory statement
-    )
-        internal
-    {
-        _execVoting(zarya, zarya.proposeThemeLabel(isCategorical, x, theme, SCHEMA_DURATION));
-        _execVoting(zarya, zarya.proposeStatementLabel(isCategorical, x, x, statement, SCHEMA_DURATION));
-        _execVoting(zarya, zarya.proposeDecimals(ORGAN, x, x, decimals, SCHEMA_DURATION));
+    // Голосования за точность числовых ячеек
+
+    function _setupDecimals(ZaryaUI zarya) internal {
+        // x=0 | средства от спонсоров — 2 знака после запятой
+        _execVoting(zarya, zarya.proposeDecimals(ORGAN, 0, 0, 2, SCHEMA_DURATION));
+        // x=1..8 | целые числа
+        _execVoting(zarya, zarya.proposeDecimals(ORGAN, 1, 1, 0, SCHEMA_DURATION));
+        _execVoting(zarya, zarya.proposeDecimals(ORGAN, 2, 2, 0, SCHEMA_DURATION));
+        _execVoting(zarya, zarya.proposeDecimals(ORGAN, 3, 3, 0, SCHEMA_DURATION));
+        _execVoting(zarya, zarya.proposeDecimals(ORGAN, 4, 4, 0, SCHEMA_DURATION));
+        _execVoting(zarya, zarya.proposeDecimals(ORGAN, 5, 5, 0, SCHEMA_DURATION));
+        _execVoting(zarya, zarya.proposeDecimals(ORGAN, 6, 6, 0, SCHEMA_DURATION));
+        _execVoting(zarya, zarya.proposeDecimals(ORGAN, 7, 7, 0, SCHEMA_DURATION));
+        _execVoting(zarya, zarya.proposeDecimals(ORGAN, 8, 8, 0, SCHEMA_DURATION));
+        console.log("Decimals configured");
     }
 
-    /// @dev Добавляет категории Да/Нет/Не знаю (ID 1/2/3) для ячейки (x, y).
-    function _addYesNoUnknown(ZaryaUI zarya, uint256 x, uint256 y) internal {
-        _execVoting(zarya, zarya.proposeCategory(ORGAN, x, y, 1, unicode"Да", SCHEMA_DURATION));
-        _execVoting(zarya, zarya.proposeCategory(ORGAN, x, y, 2, unicode"Нет", SCHEMA_DURATION));
-        _execVoting(zarya, zarya.proposeCategory(ORGAN, x, y, 3, unicode"Не знаю", SCHEMA_DURATION));
-    }
-
-    /// @dev Голосует «за» от имени broadcaster и исполняет голосование с
-    /// quorum=1.
     function _execVoting(ZaryaUI zarya, uint256 votingId) internal {
         zarya.vote(votingId, true, ORGAN);
         zarya.executeVoting(votingId, QUORUM, APPROVAL);

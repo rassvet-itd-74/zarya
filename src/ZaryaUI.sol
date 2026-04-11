@@ -5,6 +5,7 @@ import {Zarya} from "./Zarya.sol";
 import {PartyOrgans, PartyOrgan} from "./libraries/PartyOrgans.sol";
 import {Regions} from "./libraries/Regions.sol";
 import {Votings} from "./libraries/Votings.sol";
+import {Matricies} from "./libraries/Matricies.sol";
 import {EnumerableSet} from "@openzeppelin-contracts-5.4.0-rc.1/utils/structs/EnumerableSet.sol";
 
 /// @title ZaryaUI
@@ -12,6 +13,7 @@ import {EnumerableSet} from "@openzeppelin-contracts-5.4.0-rc.1/utils/structs/En
 contract ZaryaUI is Zarya {
     using EnumerableSet for EnumerableSet.AddressSet;
     using Votings for Votings.Voting;
+    using Matricies for Matricies.PairOfMatricies;
 
     struct VotingPage {
         uint256[] ids;
@@ -53,6 +55,14 @@ contract ZaryaUI is Zarya {
         string organId;
     }
 
+    struct CategoricalCellInit {
+        uint256 x;
+        uint256 y;
+        string organId;
+        uint64[] categoryIds;
+        string[] categoryLabels;
+    }
+
     function organIdentifier(
         PartyOrgans.PartyOrganType organType,
         Regions.Region region,
@@ -73,7 +83,17 @@ contract ZaryaUI is Zarya {
         return _isChairman(msg.sender);
     }
 
-    function initializeOrgansReadable(string[] calldata organIds, address[] calldata members) external {
+    function initializeReadable(
+        string[] calldata organIds,
+        address[] calldata members,
+        string[] calldata categoricalThemes,
+        string[] calldata categoricalStatements,
+        string[] calldata numericalThemes,
+        string[] calldata numericalStatements,
+        CategoricalCellInit[] calldata categoricalCells
+    )
+        external
+    {
         uint256 len = organIds.length;
         PartyOrgan[] memory organs = new PartyOrgan[](len);
         for (uint256 i; i < len;) {
@@ -83,6 +103,43 @@ contract ZaryaUI is Zarya {
             }
         }
         this.initializeOrgans(organs, members);
+        for (uint256 i; i < categoricalThemes.length;) {
+            _matricies.setTheme(true, i, categoricalThemes[i]);
+            unchecked {
+                ++i;
+            }
+        }
+        for (uint256 i; i < numericalThemes.length;) {
+            _matricies.setTheme(false, i, numericalThemes[i]);
+            unchecked {
+                ++i;
+            }
+        }
+        for (uint256 i; i < categoricalStatements.length;) {
+            _matricies.setStatement(true, 0, i, categoricalStatements[i]);
+            unchecked {
+                ++i;
+            }
+        }
+        for (uint256 i; i < numericalStatements.length;) {
+            _matricies.setStatement(false, 0, i, numericalStatements[i]);
+            unchecked {
+                ++i;
+            }
+        }
+        for (uint256 i; i < categoricalCells.length;) {
+            CategoricalCellInit calldata cell = categoricalCells[i];
+            PartyOrgan organ = _organFromId(cell.organId);
+            for (uint256 j; j < cell.categoryIds.length;) {
+                _matricies.addCategory(organ, cell.x, cell.y, cell.categoryIds[j], cell.categoryLabels[j]);
+                unchecked {
+                    ++j;
+                }
+            }
+            unchecked {
+                ++i;
+            }
+        }
     }
 
     function proposeMembership(
