@@ -57,7 +57,7 @@ contract Zarya {
     }
 
     function _votingExists(uint256 votingId) internal view {
-        if (votingId > nextVotingId || votingId == 0) {
+        if (votingId > nextVotingId) {
             revert Votings.VotingNotFound(votingId);
         }
     }
