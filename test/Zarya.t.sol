@@ -2,13 +2,13 @@
 pragma solidity ^0.8.28;
 
 import {Test} from "forge-std-1.9.7/src/Test.sol";
-import {ZaryaTestHelper} from "./ZaryaTestHelper.sol";
+import {Zarya} from "../src/Zarya.sol";
 import {PartyOrgans, PartyOrgan} from "../src/libraries/PartyOrgans.sol";
 import {Regions} from "../src/libraries/Regions.sol";
 import {Votings} from "../src/libraries/Votings.sol";
 
 contract ZaryaTest is Test {
-    ZaryaTestHelper public zarya;
+    Zarya public zarya;
 
     address member1 = address(0x1);
     address member2 = address(0x2);
@@ -24,12 +24,9 @@ contract ZaryaTest is Test {
     uint256 constant MINIMUM_APPROVAL = 51; // 51%
 
     function setUp() public {
-        zarya = new ZaryaTestHelper();
+        zarya = new Zarya();
 
-        // Create a test organ for Moscow local soviet
         testOrgan = PartyOrgans.from(PartyOrgans.PartyOrganType.LocalSoviet, Regions.Region.MOSCOW_77, 1);
-
-        // Create chairperson organ
         chairmanOrgan = PartyOrgans.from(PartyOrgans.PartyOrganType.Chairperson, Regions.Region.FEDERAL, 0);
 
         vm.label(member1, "Member 1");
@@ -37,11 +34,6 @@ contract ZaryaTest is Test {
         vm.label(member3, "Member 3");
         vm.label(nonMember, "Non-Member");
         vm.label(chairman, "Chairman");
-    }
-
-    // Helper function to add a member
-    function _addMemberDirectly(address member, PartyOrgan organ) internal {
-        zarya.addMemberForTesting(member, organ);
     }
 
     // ============ Membership Voting Tests ============
@@ -53,8 +45,11 @@ contract ZaryaTest is Test {
     }
 
     function test_CreateMembershipVoting_Success() public {
-        // First add member1 to the organ
-        _addMemberDirectly(member1, testOrgan);
+        PartyOrgan[] memory organs = new PartyOrgan[](1);
+        address[] memory addrs = new address[](1);
+        organs[0] = testOrgan;
+        addrs[0] = member1;
+        zarya.initializeOrgans(organs, addrs);
 
         vm.prank(member1);
         uint256 votingId = zarya.createMembershipVoting(testOrgan, member2, DEFAULT_DURATION);
@@ -66,10 +61,12 @@ contract ZaryaTest is Test {
     }
 
     function test_CreateMembershipVoting_SuccessAsChairman() public {
-        // Add chairman to the chairperson organ
-        _addMemberDirectly(chairman, chairmanOrgan);
+        PartyOrgan[] memory organs = new PartyOrgan[](1);
+        address[] memory addrs = new address[](1);
+        organs[0] = chairmanOrgan;
+        addrs[0] = chairman;
+        zarya.initializeOrgans(organs, addrs);
 
-        // Chairman can create membership voting for any organ without being a member of that organ
         vm.prank(chairman);
         uint256 votingId = zarya.createMembershipVoting(testOrgan, member2, DEFAULT_DURATION);
 
@@ -80,11 +77,14 @@ contract ZaryaTest is Test {
     }
 
     function test_CreateMembershipVoting_OrganMemberCanStillCreate() public {
-        // Add both chairman and organ member
-        _addMemberDirectly(chairman, chairmanOrgan);
-        _addMemberDirectly(member1, testOrgan);
+        PartyOrgan[] memory organs = new PartyOrgan[](2);
+        address[] memory addrs = new address[](2);
+        organs[0] = chairmanOrgan;
+        addrs[0] = chairman;
+        organs[1] = testOrgan;
+        addrs[1] = member1;
+        zarya.initializeOrgans(organs, addrs);
 
-        // Organ member can still create
         vm.prank(member1);
         uint256 votingId = zarya.createMembershipVoting(testOrgan, member2, DEFAULT_DURATION);
 
@@ -95,7 +95,11 @@ contract ZaryaTest is Test {
     // ============ Category Voting Tests ============
 
     function test_CreateCategoryVoting_Success() public {
-        _addMemberDirectly(member1, testOrgan);
+        PartyOrgan[] memory organs = new PartyOrgan[](1);
+        address[] memory addrs = new address[](1);
+        organs[0] = testOrgan;
+        addrs[0] = member1;
+        zarya.initializeOrgans(organs, addrs);
 
         vm.prank(member1);
         uint256 votingId = zarya.createCategoryVoting(testOrgan, 1, 1, 100, "TestCategory", DEFAULT_DURATION);
@@ -107,7 +111,11 @@ contract ZaryaTest is Test {
     // ============ Decimals Voting Tests ============
 
     function test_CreateDecimalsVoting_Success() public {
-        _addMemberDirectly(member1, testOrgan);
+        PartyOrgan[] memory organs = new PartyOrgan[](1);
+        address[] memory addrs = new address[](1);
+        organs[0] = testOrgan;
+        addrs[0] = member1;
+        zarya.initializeOrgans(organs, addrs);
 
         vm.prank(member1);
         uint256 votingId = zarya.createDecimalsVoting(testOrgan, 1, 1, 2, DEFAULT_DURATION);
@@ -139,7 +147,11 @@ contract ZaryaTest is Test {
     // ============ Categorical Value Voting Tests ============
 
     function test_CreateCategoricalValueVoting_Success() public {
-        _addMemberDirectly(member1, testOrgan);
+        PartyOrgan[] memory organs = new PartyOrgan[](1);
+        address[] memory addrs = new address[](1);
+        organs[0] = testOrgan;
+        addrs[0] = member1;
+        zarya.initializeOrgans(organs, addrs);
 
         vm.prank(member1);
         uint256 votingId = zarya.createCategoricalValueVoting(testOrgan, 1, 1, 50, member1, DEFAULT_DURATION);
@@ -151,7 +163,11 @@ contract ZaryaTest is Test {
     // ============ Numerical Value Voting Tests ============
 
     function test_CreateNumericalValueVoting_Success() public {
-        _addMemberDirectly(member1, testOrgan);
+        PartyOrgan[] memory organs = new PartyOrgan[](1);
+        address[] memory addrs = new address[](1);
+        organs[0] = testOrgan;
+        addrs[0] = member1;
+        zarya.initializeOrgans(organs, addrs);
 
         vm.prank(member1);
         uint256 votingId = zarya.createNumericalValueVoting(testOrgan, 1, 1, 1500, member1, DEFAULT_DURATION);
@@ -163,7 +179,11 @@ contract ZaryaTest is Test {
     // ============ Vote Casting Tests ============
 
     function test_CastVote_Success() public {
-        _addMemberDirectly(member1, testOrgan);
+        PartyOrgan[] memory organs = new PartyOrgan[](1);
+        address[] memory addrs = new address[](1);
+        organs[0] = testOrgan;
+        addrs[0] = member1;
+        zarya.initializeOrgans(organs, addrs);
 
         vm.prank(member1);
         uint256 votingId = zarya.createMembershipVoting(testOrgan, member2, DEFAULT_DURATION);
@@ -180,7 +200,11 @@ contract ZaryaTest is Test {
     }
 
     function test_CastVote_RevertsForNonMember() public {
-        _addMemberDirectly(member1, testOrgan);
+        PartyOrgan[] memory organs = new PartyOrgan[](1);
+        address[] memory addrs = new address[](1);
+        organs[0] = testOrgan;
+        addrs[0] = member1;
+        zarya.initializeOrgans(organs, addrs);
 
         vm.prank(member1);
         uint256 votingId = zarya.createMembershipVoting(testOrgan, member2, DEFAULT_DURATION);
@@ -191,12 +215,15 @@ contract ZaryaTest is Test {
     }
 
     function test_CastVote_RevertsWhenVotingInactive() public {
-        _addMemberDirectly(member1, testOrgan);
+        PartyOrgan[] memory organs = new PartyOrgan[](1);
+        address[] memory addrs = new address[](1);
+        organs[0] = testOrgan;
+        addrs[0] = member1;
+        zarya.initializeOrgans(organs, addrs);
 
         vm.prank(member1);
         uint256 votingId = zarya.createMembershipVoting(testOrgan, member2, DEFAULT_DURATION);
 
-        // Warp past the voting period
         vm.warp(block.timestamp + DEFAULT_DURATION + 1);
 
         vm.prank(member1);
@@ -205,7 +232,11 @@ contract ZaryaTest is Test {
     }
 
     function test_CastVote_RevertsOnDoubleVote() public {
-        _addMemberDirectly(member1, testOrgan);
+        PartyOrgan[] memory organs = new PartyOrgan[](1);
+        address[] memory addrs = new address[](1);
+        organs[0] = testOrgan;
+        addrs[0] = member1;
+        zarya.initializeOrgans(organs, addrs);
 
         vm.prank(member1);
         uint256 votingId = zarya.createMembershipVoting(testOrgan, member2, DEFAULT_DURATION);
@@ -219,9 +250,15 @@ contract ZaryaTest is Test {
     }
 
     function test_CastVote_MultipleMembers() public {
-        _addMemberDirectly(member1, testOrgan);
-        _addMemberDirectly(member2, testOrgan);
-        _addMemberDirectly(member3, testOrgan);
+        PartyOrgan[] memory organs = new PartyOrgan[](3);
+        address[] memory addrs = new address[](3);
+        organs[0] = testOrgan;
+        addrs[0] = member1;
+        organs[1] = testOrgan;
+        addrs[1] = member2;
+        organs[2] = testOrgan;
+        addrs[2] = member3;
+        zarya.initializeOrgans(organs, addrs);
 
         vm.prank(member1);
         uint256 votingId = zarya.createMembershipVoting(testOrgan, nonMember, DEFAULT_DURATION);
@@ -247,7 +284,11 @@ contract ZaryaTest is Test {
     // ============ Vote Execution Tests ============
 
     function test_ExecuteVoting_RevertsWhenActive() public {
-        _addMemberDirectly(member1, testOrgan);
+        PartyOrgan[] memory organs = new PartyOrgan[](1);
+        address[] memory addrs = new address[](1);
+        organs[0] = testOrgan;
+        addrs[0] = member1;
+        zarya.initializeOrgans(organs, addrs);
 
         vm.prank(member1);
         uint256 votingId = zarya.createMembershipVoting(testOrgan, member2, DEFAULT_DURATION);
@@ -257,38 +298,42 @@ contract ZaryaTest is Test {
     }
 
     function test_ExecuteVoting_RevertsOnInsufficientQuorum() public {
-        _addMemberDirectly(member1, testOrgan);
+        PartyOrgan[] memory organs = new PartyOrgan[](1);
+        address[] memory addrs = new address[](1);
+        organs[0] = testOrgan;
+        addrs[0] = member1;
+        zarya.initializeOrgans(organs, addrs);
 
         vm.prank(member1);
         uint256 votingId = zarya.createMembershipVoting(testOrgan, member2, DEFAULT_DURATION);
 
-        // Only one vote
         vm.prank(member1);
         zarya.castVote(votingId, true, testOrgan);
 
-        // Warp past voting period
         vm.warp(block.timestamp + DEFAULT_DURATION + 1);
 
-        // Expect revert due to insufficient quorum (need 2, have 1)
         vm.expectRevert(abi.encodeWithSelector(Votings.InsufficientVotes.selector, 1, 0));
         zarya.executeVoting(votingId, MINIMUM_QUORUM, MINIMUM_APPROVAL);
     }
 
     function test_ExecuteVoting_SuccessfulMembershipVoting() public {
-        _addMemberDirectly(member1, testOrgan);
-        _addMemberDirectly(member2, testOrgan);
+        PartyOrgan[] memory organs = new PartyOrgan[](2);
+        address[] memory addrs = new address[](2);
+        organs[0] = testOrgan;
+        addrs[0] = member1;
+        organs[1] = testOrgan;
+        addrs[1] = member2;
+        zarya.initializeOrgans(organs, addrs);
 
         vm.prank(member1);
         uint256 votingId = zarya.createMembershipVoting(testOrgan, member3, DEFAULT_DURATION);
 
-        // Two votes for
         vm.prank(member1);
         zarya.castVote(votingId, true, testOrgan);
 
         vm.prank(member2);
         zarya.castVote(votingId, true, testOrgan);
 
-        // Warp past voting period
         vm.warp(block.timestamp + DEFAULT_DURATION + 1);
 
         bool success = zarya.executeVoting(votingId, MINIMUM_QUORUM, MINIMUM_APPROVAL);
@@ -298,14 +343,19 @@ contract ZaryaTest is Test {
     }
 
     function test_ExecuteVoting_FailedDueToInsufficientApproval() public {
-        _addMemberDirectly(member1, testOrgan);
-        _addMemberDirectly(member2, testOrgan);
-        _addMemberDirectly(member3, testOrgan);
+        PartyOrgan[] memory organs = new PartyOrgan[](3);
+        address[] memory addrs = new address[](3);
+        organs[0] = testOrgan;
+        addrs[0] = member1;
+        organs[1] = testOrgan;
+        addrs[1] = member2;
+        organs[2] = testOrgan;
+        addrs[2] = member3;
+        zarya.initializeOrgans(organs, addrs);
 
         vm.prank(member1);
         uint256 votingId = zarya.createMembershipVoting(testOrgan, nonMember, DEFAULT_DURATION);
 
-        // 1 for, 2 against (33% approval)
         vm.prank(member1);
         zarya.castVote(votingId, true, testOrgan);
 
@@ -315,7 +365,6 @@ contract ZaryaTest is Test {
         vm.prank(member3);
         zarya.castVote(votingId, false, testOrgan);
 
-        // Warp past voting period
         vm.warp(block.timestamp + DEFAULT_DURATION + 1);
 
         bool success = zarya.executeVoting(votingId, MINIMUM_QUORUM, MINIMUM_APPROVAL);
@@ -325,8 +374,13 @@ contract ZaryaTest is Test {
     }
 
     function test_ExecuteVoting_RevertsOnDoubleExecution() public {
-        _addMemberDirectly(member1, testOrgan);
-        _addMemberDirectly(member2, testOrgan);
+        PartyOrgan[] memory organs = new PartyOrgan[](2);
+        address[] memory addrs = new address[](2);
+        organs[0] = testOrgan;
+        addrs[0] = member1;
+        organs[1] = testOrgan;
+        addrs[1] = member2;
+        zarya.initializeOrgans(organs, addrs);
 
         vm.prank(member1);
         uint256 votingId = zarya.createMembershipVoting(testOrgan, member3, DEFAULT_DURATION);
@@ -354,7 +408,11 @@ contract ZaryaTest is Test {
     }
 
     function test_HasVoted_ReturnsFalseForNonVoter() public {
-        _addMemberDirectly(member1, testOrgan);
+        PartyOrgan[] memory organs = new PartyOrgan[](1);
+        address[] memory addrs = new address[](1);
+        organs[0] = testOrgan;
+        addrs[0] = member1;
+        zarya.initializeOrgans(organs, addrs);
 
         vm.prank(member1);
         uint256 votingId = zarya.createMembershipVoting(testOrgan, member2, DEFAULT_DURATION);
@@ -363,7 +421,11 @@ contract ZaryaTest is Test {
     }
 
     function test_IsVotingActive_ReturnsFalseAfterExpiry() public {
-        _addMemberDirectly(member1, testOrgan);
+        PartyOrgan[] memory organs = new PartyOrgan[](1);
+        address[] memory addrs = new address[](1);
+        organs[0] = testOrgan;
+        addrs[0] = member1;
+        zarya.initializeOrgans(organs, addrs);
 
         vm.prank(member1);
         uint256 votingId = zarya.createMembershipVoting(testOrgan, member2, DEFAULT_DURATION);
@@ -376,7 +438,11 @@ contract ZaryaTest is Test {
     }
 
     function test_MultipleVotingsInSequence() public {
-        _addMemberDirectly(member1, testOrgan);
+        PartyOrgan[] memory organs = new PartyOrgan[](1);
+        address[] memory addrs = new address[](1);
+        organs[0] = testOrgan;
+        addrs[0] = member1;
+        zarya.initializeOrgans(organs, addrs);
 
         vm.startPrank(member1);
 
