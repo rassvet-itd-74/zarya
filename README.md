@@ -27,10 +27,11 @@
   - [🔮 Прогнозирование](#-прогнозирование)
     - [Проверка нулевой гипотезы (H₀)](#проверка-нулевой-гипотезы-h)
   - [🛠️ Технологический стек](#️-технологический-стек)
-  - [� Развёртывание](#-развёртывание)
+  - [🚀 Развёртывание](#-развёртывание)
+    - [0. `DeployLibs.s.sol` — развёртывание библиотек](#0-deploylibsssol--развёртывание-библиотек)
     - [1. `Zarya.s.sol` — первоначальное развёртывание](#1-zaryassol--первоначальное-развёртывание)
-    - [2. `ZaryaRegional.s.sol` — добавление региональных органов](#2-zaryaregionalssol--добавление-региональных-органов)
-  - [�🔗 Полезные ссылки](#-полезные-ссылки)
+    - [2. `ZaryaRegional.s.sol` — добавление региональных членов](#2-zaryaregionalssol--добавление-региональных-членов)
+  - [🔗 Полезные ссылки](#-полезные-ссылки)
   - [🤝 Участие в проекте](#-участие-в-проекте)
 
 ## 📖 Описание проекта
@@ -148,11 +149,37 @@ function predict_change(current_sample, new_value):
 
 ## 🛠️ Технологический стек
 
-- **Solidity** + **Foundry** - смарт-контракты
+- **Solidity** + **Foundry** — смарт-контракты
+- **Sepolia** — тестовая сеть развёртывания
 
-## � Развёртывание
+## 🚀 Развёртывание
 
-Развёртывание разбито на два скрипта.
+Развёртывание разбито на три шага.
+
+### 0. `DeployLibs.s.sol` — развёртывание библиотек
+
+Выполняется один раз: разворачивает on-chain библиотеки (`Matricies`, `PartyOrgans`, `Regions`, `Votings`) и записывает их адреса в `foundry.toml` в секцию `libraries`.
+
+**Уже развёрнутые адреса (Sepolia):**
+
+| Библиотека    | Адрес                                        |
+| ------------- | -------------------------------------------- |
+| `Matricies`   | `0xf26048871E3Db76ae39A2Be973152776906C3908` |
+| `PartyOrgans` | `0x3AE769f099a191cAC9b5783cE46e7568B55CcDb6` |
+| `Regions`     | `0x0eD66a9051C5cCFf71a825e3588A98d65FB2ddbB` |
+| `Votings`     | `0x30C0c2968eb2b5B87e782B8aA3CE6C71feA0ac36` |
+
+```bash
+RPC_URL=https://rpc.url PRIVATE_KEY=0xKEY \
+  forge script script/DeployLibs.s.sol \
+  --rpc-url $RPC_URL --private-key $PRIVATE_KEY --broadcast
+```
+
+```powershell
+$env:RPC_URL="https://rpc.url"; $env:PRIVATE_KEY="0xKEY"
+forge script script/DeployLibs.s.sol `
+  --rpc-url $env:RPC_URL --private-key $env:PRIVATE_KEY --broadcast
+```
 
 ### 1. `Zarya.s.sol` — первоначальное развёртывание
 
@@ -182,9 +209,11 @@ forge script script/Zarya.s.sol `
   Председатель (ПРЛ): 0x2aF5b7345A705Ea8910c209d7469656831aE5357
 ```
 
-### 2. `ZaryaRegional.s.sol` — добавление региональных органов
+### 2. `ZaryaRegional.s.sol` — добавление региональных членов
 
-Запускается после развёртывания. Создаёт голосование о вступлении первого члена Совета регионального отделения через механизм DAO.
+Запускается после развёртывания. Для каждого адреса из `REGIONAL_SOVIET_MEMBERS` создаёт отдельное DAO-голосование о вступлении в Совет регионального отделения **74 (Челябинская область)**.
+
+> ⚠️ Регион жёстко задан в скрипте: `Regions.Region.CHELYABINSKAYA_OBLAST`. Для других регионов скрипт необходимо адаптировать.
 
 **Переменные окружения:**
 
@@ -208,14 +237,22 @@ forge script script/ZaryaRegional.s.sol `
   --rpc-url $env:RPC_URL --private-key $env:PRIVATE_KEY --broadcast
 ```
 
-## �🔗 Полезные ссылки
+```
+== Logs ==
+  Голосование о вступлении члена 74.СОВ создано, id: 1
+  Кандидат: 0xMEMBER1
+  Голосование о вступлении члена 74.СОВ создано, id: 2
+  Кандидат: 0xMEMBER2
+```
+
+## 🔗 Полезные ссылки
 
 - **[Презентация](https://docs.google.com/presentation/d/1mRsgTg3XsrVSvXpRoXnVyLOgX2QSJKPEfJUwnsZz_Uk/edit?usp=sharing)** - детальный обзор системы
 
 ## 🤝 Участие в проекте
 
 1. 🍴 Fork репозитория
-2. 🔨 Внесите изменения  
+2. 🔨 Внесите изменения
 3. 📤 Создайте pull request
 
 <div align="center">

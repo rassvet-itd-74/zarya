@@ -51,7 +51,11 @@ library Matricies {
         uint256 x,
         uint256 y,
         uint64 category
-    ) internal view returns (bool) {
+    )
+        internal
+        view
+        returns (bool)
+    {
         return self.categoricalMatrix[x][y].allowedCategories.contains(category)
             && self.categoricalMatrix[x][y].organ == organ;
     }
@@ -78,7 +82,9 @@ library Matricies {
         uint64 value,
         address author,
         bool isCategorical
-    ) external {
+    )
+        external
+    {
         if (bytes(self.themes[isCategorical][x]).length == 0) {
             revert NoThemeSet(isCategorical, x);
         }
@@ -112,7 +118,14 @@ library Matricies {
         emit ValueAdded(x, y, value, author);
     }
 
-    function addCategory(PairOfMatricies storage self, PartyOrgan organ, uint256 x, uint256 y, uint64 category, string memory categoryName)
+    function addCategory(
+        PairOfMatricies storage self,
+        PartyOrgan organ,
+        uint256 x,
+        uint256 y,
+        uint64 category,
+        string memory categoryName
+    )
         internal
     {
         if (
@@ -129,7 +142,13 @@ library Matricies {
         emit CategoryAdded(x, y, category);
     }
 
-    function setDecimals(PairOfMatricies storage self, PartyOrgan organ, uint256 x, uint256 y, uint8 decimals)
+    function setDecimals(
+        PairOfMatricies storage self,
+        PartyOrgan organ,
+        uint256 x,
+        uint256 y,
+        uint8 decimals
+    )
         external
     {
         if (
@@ -152,7 +171,9 @@ library Matricies {
         uint256 x,
         uint256 y,
         string memory statement
-    ) external {
+    )
+        external
+    {
         if (bytes(self.themes[isCategorical][x]).length == 0) {
             revert NoThemeSet(isCategorical, x);
         }
@@ -162,7 +183,11 @@ library Matricies {
     // ============ View Functions ============
 
     // Theme and Statement Queries
-    function getTheme(PairOfMatricies storage self, bool isCategorical, uint256 x)
+    function getTheme(
+        PairOfMatricies storage self,
+        bool isCategorical,
+        uint256 x
+    )
         internal
         view
         returns (string memory)
@@ -170,7 +195,11 @@ library Matricies {
         return self.themes[isCategorical][x];
     }
 
-    function getStatement(PairOfMatricies storage self, bool isCategorical, uint256 y)
+    function getStatement(
+        PairOfMatricies storage self,
+        bool isCategorical,
+        uint256 y
+    )
         internal
         view
         returns (string memory)
@@ -179,7 +208,11 @@ library Matricies {
     }
 
     // Organ Queries
-    function getCategoricalCellOrgan(PairOfMatricies storage self, uint256 x, uint256 y)
+    function getCategoricalCellOrgan(
+        PairOfMatricies storage self,
+        uint256 x,
+        uint256 y
+    )
         internal
         view
         returns (PartyOrgan)
@@ -187,7 +220,11 @@ library Matricies {
         return self.categoricalMatrix[x][y].organ;
     }
 
-    function getNumericalCellOrgan(PairOfMatricies storage self, uint256 x, uint256 y)
+    function getNumericalCellOrgan(
+        PairOfMatricies storage self,
+        uint256 x,
+        uint256 y
+    )
         internal
         view
         returns (PartyOrgan)
@@ -196,7 +233,11 @@ library Matricies {
     }
 
     // Category Queries
-    function getAllowedCategories(PairOfMatricies storage self, uint256 x, uint256 y)
+    function getAllowedCategories(
+        PairOfMatricies storage self,
+        uint256 x,
+        uint256 y
+    )
         internal
         view
         returns (uint64[] memory)
@@ -209,7 +250,12 @@ library Matricies {
         return categories;
     }
 
-    function getCategoryName(PairOfMatricies storage self, uint256 x, uint256 y, uint64 category)
+    function getCategoryName(
+        PairOfMatricies storage self,
+        uint256 x,
+        uint256 y,
+        uint64 category
+    )
         internal
         view
         returns (string memory)
@@ -217,7 +263,12 @@ library Matricies {
         return self.categoricalMatrix[x][y].categoryNames[category];
     }
 
-    function isCategoryAllowed(PairOfMatricies storage self, uint256 x, uint256 y, uint64 category)
+    function isCategoryAllowed(
+        PairOfMatricies storage self,
+        uint256 x,
+        uint256 y,
+        uint64 category
+    )
         internal
         view
         returns (bool)
@@ -226,7 +277,11 @@ library Matricies {
     }
 
     // Cell Info Aggregates
-    function getCategoricalCellInfo(PairOfMatricies storage self, uint256 x, uint256 y)
+    function getCategoricalCellInfo(
+        PairOfMatricies storage self,
+        uint256 x,
+        uint256 y
+    )
         internal
         view
         returns (PartyOrgan organ, uint64[] memory allowedCategories, uint256 sampleLength)
@@ -236,7 +291,11 @@ library Matricies {
         sampleLength = self.categoricalMatrix[x][y].categoricalSample.length();
     }
 
-    function getNumericalCellInfo(PairOfMatricies storage self, uint256 x, uint256 y)
+    function getNumericalCellInfo(
+        PairOfMatricies storage self,
+        uint256 x,
+        uint256 y
+    )
         internal
         view
         returns (PartyOrgan organ, uint8 decimals, uint256 sampleLength)
@@ -247,7 +306,11 @@ library Matricies {
     }
 
     // Sample Length Queries
-    function getCategoricalSampleLength(PairOfMatricies storage self, uint256 x, uint256 y)
+    function getCategoricalSampleLength(
+        PairOfMatricies storage self,
+        uint256 x,
+        uint256 y
+    )
         internal
         view
         returns (uint256)
@@ -255,7 +318,11 @@ library Matricies {
         return self.categoricalMatrix[x][y].categoricalSample.length();
     }
 
-    function getNumericalSampleLength(PairOfMatricies storage self, uint256 x, uint256 y)
+    function getNumericalSampleLength(
+        PairOfMatricies storage self,
+        uint256 x,
+        uint256 y
+    )
         internal
         view
         returns (uint256)
@@ -264,7 +331,11 @@ library Matricies {
     }
 
     // Latest Value Queries
-    function getLatestCategoricalValue(PairOfMatricies storage self, uint256 x, uint256 y)
+    function getLatestCategoricalValue(
+        PairOfMatricies storage self,
+        uint256 x,
+        uint256 y
+    )
         internal
         view
         returns (DecodedCheckpoint memory)
@@ -277,7 +348,11 @@ library Matricies {
         return _decodeCheckpoint(timestamp, encodedValue);
     }
 
-    function getLatestNumericalValue(PairOfMatricies storage self, uint256 x, uint256 y)
+    function getLatestNumericalValue(
+        PairOfMatricies storage self,
+        uint256 x,
+        uint256 y
+    )
         internal
         view
         returns (DecodedCheckpoint memory)
@@ -291,30 +366,45 @@ library Matricies {
     }
 
     // Indexed Value Access
-    function getCategoricalValueAt(PairOfMatricies storage self, uint256 x, uint256 y, uint256 index)
+    function getCategoricalValueAt(
+        PairOfMatricies storage self,
+        uint256 x,
+        uint256 y,
+        uint256 index
+    )
         internal
         view
         returns (DecodedCheckpoint memory)
     {
-        // casting to 'uint32' is safe because Checkpoints.at() expects uint32 and index is validated by the Checkpoints library
-        // forge-lint: disable-next-line(unsafe-typecast)
+        // casting to 'uint32' is safe because Checkpoints.at() expects uint32 and index is validated by the Checkpoints
+        // library forge-lint: disable-next-line(unsafe-typecast)
         Checkpoints.Checkpoint224 memory checkpoint = self.categoricalMatrix[x][y].categoricalSample.at(uint32(index));
         return _decodeCheckpoint(checkpoint._key, checkpoint._value);
     }
 
-    function getNumericalValueAt(PairOfMatricies storage self, uint256 x, uint256 y, uint256 index)
+    function getNumericalValueAt(
+        PairOfMatricies storage self,
+        uint256 x,
+        uint256 y,
+        uint256 index
+    )
         internal
         view
         returns (DecodedCheckpoint memory)
     {
-        // casting to 'uint32' is safe because Checkpoints.at() expects uint32 and index is validated by the Checkpoints library
-        // forge-lint: disable-next-line(unsafe-typecast)
+        // casting to 'uint32' is safe because Checkpoints.at() expects uint32 and index is validated by the Checkpoints
+        // library forge-lint: disable-next-line(unsafe-typecast)
         Checkpoints.Checkpoint224 memory checkpoint = self.numericalMatrix[x][y].numericalSample.at(uint32(index));
         return _decodeCheckpoint(checkpoint._key, checkpoint._value);
     }
 
     // Timestamp Lookup
-    function getCategoricalValueAtTimestamp(PairOfMatricies storage self, uint256 x, uint256 y, uint32 timestamp)
+    function getCategoricalValueAtTimestamp(
+        PairOfMatricies storage self,
+        uint256 x,
+        uint256 y,
+        uint32 timestamp
+    )
         internal
         view
         returns (DecodedCheckpoint memory)
@@ -326,7 +416,12 @@ library Matricies {
         return _decodeCheckpoint(timestamp, encodedValue);
     }
 
-    function getNumericalValueAtTimestamp(PairOfMatricies storage self, uint256 x, uint256 y, uint32 timestamp)
+    function getNumericalValueAtTimestamp(
+        PairOfMatricies storage self,
+        uint256 x,
+        uint256 y,
+        uint32 timestamp
+    )
         internal
         view
         returns (DecodedCheckpoint memory)
@@ -339,7 +434,13 @@ library Matricies {
     }
 
     // Paginated History Queries
-    function getCategoricalHistory(PairOfMatricies storage self, uint256 x, uint256 y, uint256 offset, uint256 limit)
+    function getCategoricalHistory(
+        PairOfMatricies storage self,
+        uint256 x,
+        uint256 y,
+        uint256 offset,
+        uint256 limit
+    )
         internal
         view
         returns (uint32[] memory timestamps, address[] memory authors, uint64[] memory values)
@@ -357,9 +458,10 @@ library Matricies {
         values = new uint64[](resultLength);
 
         for (uint256 i = 0; i < resultLength; i++) {
-            // casting to 'uint32' is safe because offset + i is bounded by resultLength which is <= totalLength (sample length)
-            // forge-lint: disable-next-line(unsafe-typecast)
-            Checkpoints.Checkpoint224 memory checkpoint = self.categoricalMatrix[x][y].categoricalSample.at(uint32(offset + i));
+            // casting to 'uint32' is safe because offset + i is bounded by resultLength which is <= totalLength (sample
+            // length) forge-lint: disable-next-line(unsafe-typecast)
+            Checkpoints.Checkpoint224 memory checkpoint =
+                self.categoricalMatrix[x][y].categoricalSample.at(uint32(offset + i));
             DecodedCheckpoint memory decoded = _decodeCheckpoint(checkpoint._key, checkpoint._value);
             timestamps[i] = decoded.timestamp;
             authors[i] = decoded.author;
@@ -367,7 +469,13 @@ library Matricies {
         }
     }
 
-    function getNumericalHistory(PairOfMatricies storage self, uint256 x, uint256 y, uint256 offset, uint256 limit)
+    function getNumericalHistory(
+        PairOfMatricies storage self,
+        uint256 x,
+        uint256 y,
+        uint256 offset,
+        uint256 limit
+    )
         internal
         view
         returns (uint32[] memory timestamps, address[] memory authors, uint64[] memory values)
@@ -385,9 +493,10 @@ library Matricies {
         values = new uint64[](resultLength);
 
         for (uint256 i = 0; i < resultLength; i++) {
-            // casting to 'uint32' is safe because offset + i is bounded by resultLength which is <= totalLength (sample length)
-            // forge-lint: disable-next-line(unsafe-typecast)
-            Checkpoints.Checkpoint224 memory checkpoint = self.numericalMatrix[x][y].numericalSample.at(uint32(offset + i));
+            // casting to 'uint32' is safe because offset + i is bounded by resultLength which is <= totalLength (sample
+            // length) forge-lint: disable-next-line(unsafe-typecast)
+            Checkpoints.Checkpoint224 memory checkpoint =
+                self.numericalMatrix[x][y].numericalSample.at(uint32(offset + i));
             DecodedCheckpoint memory decoded = _decodeCheckpoint(checkpoint._key, checkpoint._value);
             timestamps[i] = decoded.timestamp;
             authors[i] = decoded.author;

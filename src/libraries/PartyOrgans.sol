@@ -53,7 +53,11 @@ library PartyOrgans {
         return PartyOrgan.wrap(keccak256(abi.encodePacked(identifier)));
     }
 
-    function getPartyOrganIdentifier(PartyOrganType organType, Regions.Region region, uint256 number)
+    function getPartyOrganIdentifier(
+        PartyOrganType organType,
+        Regions.Region region,
+        uint256 number
+    )
         internal
         pure
         returns (string memory)

@@ -118,7 +118,9 @@ library Votings {
     );
     event MembershipVotingCreated(uint256 indexed votingId, PartyOrgan organ, address member);
     event MembershipRevocationVotingCreated(uint256 indexed votingId, PartyOrgan organ, address member);
-    event CategoryVotingCreated(uint256 indexed votingId, PartyOrgan organ, uint256 x, uint256 y, uint64 category, string categoryName);
+    event CategoryVotingCreated(
+        uint256 indexed votingId, PartyOrgan organ, uint256 x, uint256 y, uint64 category, string categoryName
+    );
     event DecimalsVotingCreated(uint256 indexed votingId, PartyOrgan organ, uint256 x, uint256 y, uint8 decimals);
     event ThemeVotingCreated(uint256 indexed votingId, bool isCategorical, uint256 x, string theme);
     event StatementVotingCreated(uint256 indexed votingId, bool isCategorical, uint256 x, uint256 y, string statement);
@@ -144,7 +146,9 @@ library Votings {
         uint256 duration,
         PartyOrgan organ,
         address member
-    ) internal {
+    )
+        internal
+    {
         self.id = id;
         self.author = author;
         self.startTime = block.timestamp;
@@ -163,7 +167,9 @@ library Votings {
         uint256 duration,
         PartyOrgan organ,
         address member
-    ) internal {
+    )
+        internal
+    {
         self.id = id;
         self.author = author;
         self.startTime = block.timestamp;
@@ -185,13 +191,16 @@ library Votings {
         uint256 y,
         uint64 category,
         string memory categoryName
-    ) internal {
+    )
+        internal
+    {
         self.id = id;
         self.author = author;
         self.startTime = block.timestamp;
         self.endTime = block.timestamp + duration;
         self.suggestionType = SuggestionType.Category;
-        self.categorySuggestionData = CategorySuggestion({organ: organ, x: x, y: y, category: category, categoryName: categoryName});
+        self.categorySuggestionData =
+            CategorySuggestion({organ: organ, x: x, y: y, category: category, categoryName: categoryName});
 
         emit VotingCreated(id, author, self.startTime, self.endTime, SuggestionType.Category);
         emit CategoryVotingCreated(id, organ, x, y, category, categoryName);
@@ -206,7 +215,9 @@ library Votings {
         uint256 x,
         uint256 y,
         uint8 decimals
-    ) internal {
+    )
+        internal
+    {
         self.id = id;
         self.author = author;
         self.startTime = block.timestamp;
@@ -226,7 +237,9 @@ library Votings {
         bool isCategorical,
         uint256 x,
         string memory theme
-    ) internal {
+    )
+        internal
+    {
         self.id = id;
         self.author = author;
         self.startTime = block.timestamp;
@@ -247,7 +260,9 @@ library Votings {
         uint256 x,
         uint256 y,
         string memory statement
-    ) internal {
+    )
+        internal
+    {
         self.id = id;
         self.author = author;
         self.startTime = block.timestamp;
@@ -270,7 +285,9 @@ library Votings {
         uint256 y,
         uint64 value,
         address valueAuthor
-    ) internal {
+    )
+        internal
+    {
         self.id = id;
         self.author = author;
         self.startTime = block.timestamp;
@@ -293,7 +310,9 @@ library Votings {
         uint256 y,
         uint64 value,
         address valueAuthor
-    ) internal {
+    )
+        internal
+    {
         self.id = id;
         self.author = author;
         self.startTime = block.timestamp;
@@ -338,7 +357,10 @@ library Votings {
         uint256 minimumApprovalPercentage,
         Matricies.PairOfMatricies storage matricies,
         PartyOrgans.MembersRegistry storage membersRegistry
-    ) internal returns (bool success) {
+    )
+        internal
+        returns (bool success)
+    {
         if (isActive(self)) revert VotingStillActive(self.id);
         if (self.finalized) revert VotingAlreadyFinalized(self.id);
 
@@ -367,7 +389,9 @@ library Votings {
         Voting storage self,
         PartyOrgans.MembersRegistry storage membersRegistry,
         Matricies.PairOfMatricies storage matricies
-    ) private {
+    )
+        private
+    {
         if (self.suggestionType == SuggestionType.Membership) {
             MembershipSuggestion memory suggestion = self.memberSuggestionData;
             membersRegistry.membersByOrgan[suggestion.organ].add(suggestion.member);
@@ -376,7 +400,9 @@ library Votings {
             membersRegistry.membersByOrgan[suggestion.organ].remove(suggestion.member);
         } else if (self.suggestionType == SuggestionType.Category) {
             CategorySuggestion memory suggestion = self.categorySuggestionData;
-            matricies.addCategory(suggestion.organ, suggestion.x, suggestion.y, suggestion.category, suggestion.categoryName);
+            matricies.addCategory(
+                suggestion.organ, suggestion.x, suggestion.y, suggestion.category, suggestion.categoryName
+            );
         } else if (self.suggestionType == SuggestionType.Decimals) {
             DecimalsSuggestion memory suggestion = self.decimalsSuggestionData;
             matricies.setDecimals(suggestion.organ, suggestion.x, suggestion.y, suggestion.decimals);

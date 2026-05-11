@@ -257,15 +257,8 @@ contract Zarya {
 
     // ============ Voting Participation ============
 
-    function castVote(
-        uint256 votingId,
-        bool support,
-        PartyOrgan organ
-    )
-        external
-        votingExists(votingId)
-        onlyMember(organ)
-    {
+    function castVote(uint256 votingId, bool support, PartyOrgan organ) external votingExists(votingId) {
+        _onlyMemberOrChairman(organ);
         _votings[votingId].castVote(support, msg.sender);
     }
 
