@@ -165,11 +165,21 @@ function predict_change(current_sample, new_value):
 | `CHAIRMAN` | Адрес Председателя партии (`ПРЛ`) |
 
 ```bash
-CHAIRMAN=0x... forge script script/Zarya.s.sol --broadcast
+CHAIRMAN=0xADDRESS RPC_URL=https://rpc.url PRIVATE_KEY=0xKEY \
+  forge script script/Zarya.s.sol \
+  --rpc-url $RPC_URL --private-key $PRIVATE_KEY --broadcast
 ```
 
 ```powershell
-$env:CHAIRMAN="0x..."; forge script script/Zarya.s.sol --broadcast
+$env:CHAIRMAN="0xADDRESS"; $env:RPC_URL="https://rpc.url"; $env:PRIVATE_KEY="0xKEY"
+forge script script/Zarya.s.sol `
+  --rpc-url $env:RPC_URL --private-key $env:PRIVATE_KEY --broadcast
+```
+
+```
+== Logs ==
+  Заря развёрнута по адресу: 0x75BbACe4A6720636622F1a344B13c5DC193D06a4
+  Председатель (ПРЛ): 0x2aF5b7345A705Ea8910c209d7469656831aE5357
 ```
 
 ### 2. `ZaryaRegional.s.sol` — добавление региональных органов
@@ -185,13 +195,17 @@ $env:CHAIRMAN="0x..."; forge script script/Zarya.s.sol --broadcast
 | `VOTING_DURATION`         | Длительность голосования в секундах                        |
 
 ```bash
-ZARYA_ADDRESS=0x... REGIONAL_SOVIET_MEMBERS=0x1...,0x2... VOTING_DURATION=604800 \
-  forge script script/ZaryaRegional.s.sol --broadcast
+ZARYA_ADDRESS=0xADDRESS REGIONAL_SOVIET_MEMBERS=0xMEMBER1,0xMEMBER2 VOTING_DURATION=604800 \
+  RPC_URL=https://rpc.url PRIVATE_KEY=0xKEY \
+  forge script script/ZaryaRegional.s.sol \
+  --rpc-url $RPC_URL --private-key $PRIVATE_KEY --broadcast
 ```
 
 ```powershell
-$env:ZARYA_ADDRESS="0x..."; $env:REGIONAL_SOVIET_MEMBERS="0x1...,0x2..."; $env:VOTING_DURATION="604800"
-forge script script/ZaryaRegional.s.sol --broadcast
+$env:ZARYA_ADDRESS="0xADDRESS"; $env:REGIONAL_SOVIET_MEMBERS="0xMEMBER1,0xMEMBER2"; $env:VOTING_DURATION="604800"
+$env:RPC_URL="https://rpc.url"; $env:PRIVATE_KEY="0xKEY"
+forge script script/ZaryaRegional.s.sol `
+  --rpc-url $env:RPC_URL --private-key $env:PRIVATE_KEY --broadcast
 ```
 
 ## �🔗 Полезные ссылки
