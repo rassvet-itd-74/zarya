@@ -24,7 +24,7 @@ contract ZaryaTest is Test {
     uint256 constant MINIMUM_APPROVAL = 51; // 51%
 
     function setUp() public {
-        zarya = new Zarya();
+        zarya = new Zarya(chairman);
 
         testOrgan = PartyOrgans.from(PartyOrgans.PartyOrganType.LocalSoviet, Regions.Region.MOSCOW_77, 1);
         chairmanOrgan = PartyOrgans.from(PartyOrgans.PartyOrganType.Chairperson, Regions.Region.FEDERAL, 0);
@@ -34,6 +34,11 @@ contract ZaryaTest is Test {
         vm.label(member3, "Member 3");
         vm.label(nonMember, "Non-Member");
         vm.label(chairman, "Chairman");
+    }
+
+    function _initOrgans(PartyOrgan[] memory organs, address[] memory addrs) internal {
+        vm.prank(chairman);
+        zarya.initializeOrgans(organs, addrs);
     }
 
     // ============ Membership Voting Tests ============
@@ -49,7 +54,7 @@ contract ZaryaTest is Test {
         address[] memory addrs = new address[](1);
         organs[0] = testOrgan;
         addrs[0] = member1;
-        zarya.initializeOrgans(organs, addrs);
+        _initOrgans(organs, addrs);
 
         vm.prank(member1);
         uint256 votingId = zarya.createMembershipVoting(testOrgan, member2, DEFAULT_DURATION);
@@ -65,7 +70,7 @@ contract ZaryaTest is Test {
         address[] memory addrs = new address[](1);
         organs[0] = chairmanOrgan;
         addrs[0] = chairman;
-        zarya.initializeOrgans(organs, addrs);
+        _initOrgans(organs, addrs);
 
         vm.prank(chairman);
         uint256 votingId = zarya.createMembershipVoting(testOrgan, member2, DEFAULT_DURATION);
@@ -83,7 +88,7 @@ contract ZaryaTest is Test {
         addrs[0] = chairman;
         organs[1] = testOrgan;
         addrs[1] = member1;
-        zarya.initializeOrgans(organs, addrs);
+        _initOrgans(organs, addrs);
 
         vm.prank(member1);
         uint256 votingId = zarya.createMembershipVoting(testOrgan, member2, DEFAULT_DURATION);
@@ -99,7 +104,7 @@ contract ZaryaTest is Test {
         address[] memory addrs = new address[](1);
         organs[0] = testOrgan;
         addrs[0] = member1;
-        zarya.initializeOrgans(organs, addrs);
+        _initOrgans(organs, addrs);
 
         vm.prank(member1);
         uint256 votingId = zarya.createCategoryVoting(testOrgan, 1, 1, 100, "TestCategory", DEFAULT_DURATION);
@@ -115,7 +120,7 @@ contract ZaryaTest is Test {
         address[] memory addrs = new address[](1);
         organs[0] = testOrgan;
         addrs[0] = member1;
-        zarya.initializeOrgans(organs, addrs);
+        _initOrgans(organs, addrs);
 
         vm.prank(member1);
         uint256 votingId = zarya.createDecimalsVoting(testOrgan, 1, 1, 2, DEFAULT_DURATION);
@@ -151,7 +156,7 @@ contract ZaryaTest is Test {
         address[] memory addrs = new address[](1);
         organs[0] = testOrgan;
         addrs[0] = member1;
-        zarya.initializeOrgans(organs, addrs);
+        _initOrgans(organs, addrs);
 
         vm.prank(member1);
         uint256 votingId = zarya.createCategoricalValueVoting(testOrgan, 1, 1, 50, member1, DEFAULT_DURATION);
@@ -167,7 +172,7 @@ contract ZaryaTest is Test {
         address[] memory addrs = new address[](1);
         organs[0] = testOrgan;
         addrs[0] = member1;
-        zarya.initializeOrgans(organs, addrs);
+        _initOrgans(organs, addrs);
 
         vm.prank(member1);
         uint256 votingId = zarya.createNumericalValueVoting(testOrgan, 1, 1, 1500, member1, DEFAULT_DURATION);
@@ -183,7 +188,7 @@ contract ZaryaTest is Test {
         address[] memory addrs = new address[](1);
         organs[0] = testOrgan;
         addrs[0] = member1;
-        zarya.initializeOrgans(organs, addrs);
+        _initOrgans(organs, addrs);
 
         vm.prank(member1);
         uint256 votingId = zarya.createMembershipVoting(testOrgan, member2, DEFAULT_DURATION);
@@ -204,7 +209,7 @@ contract ZaryaTest is Test {
         address[] memory addrs = new address[](1);
         organs[0] = testOrgan;
         addrs[0] = member1;
-        zarya.initializeOrgans(organs, addrs);
+        _initOrgans(organs, addrs);
 
         vm.prank(member1);
         uint256 votingId = zarya.createMembershipVoting(testOrgan, member2, DEFAULT_DURATION);
@@ -219,7 +224,7 @@ contract ZaryaTest is Test {
         address[] memory addrs = new address[](1);
         organs[0] = testOrgan;
         addrs[0] = member1;
-        zarya.initializeOrgans(organs, addrs);
+        _initOrgans(organs, addrs);
 
         vm.prank(member1);
         uint256 votingId = zarya.createMembershipVoting(testOrgan, member2, DEFAULT_DURATION);
@@ -236,7 +241,7 @@ contract ZaryaTest is Test {
         address[] memory addrs = new address[](1);
         organs[0] = testOrgan;
         addrs[0] = member1;
-        zarya.initializeOrgans(organs, addrs);
+        _initOrgans(organs, addrs);
 
         vm.prank(member1);
         uint256 votingId = zarya.createMembershipVoting(testOrgan, member2, DEFAULT_DURATION);
@@ -258,7 +263,7 @@ contract ZaryaTest is Test {
         addrs[1] = member2;
         organs[2] = testOrgan;
         addrs[2] = member3;
-        zarya.initializeOrgans(organs, addrs);
+        _initOrgans(organs, addrs);
 
         vm.prank(member1);
         uint256 votingId = zarya.createMembershipVoting(testOrgan, nonMember, DEFAULT_DURATION);
@@ -288,7 +293,7 @@ contract ZaryaTest is Test {
         address[] memory addrs = new address[](1);
         organs[0] = testOrgan;
         addrs[0] = member1;
-        zarya.initializeOrgans(organs, addrs);
+        _initOrgans(organs, addrs);
 
         vm.prank(member1);
         uint256 votingId = zarya.createMembershipVoting(testOrgan, member2, DEFAULT_DURATION);
@@ -302,7 +307,7 @@ contract ZaryaTest is Test {
         address[] memory addrs = new address[](1);
         organs[0] = testOrgan;
         addrs[0] = member1;
-        zarya.initializeOrgans(organs, addrs);
+        _initOrgans(organs, addrs);
 
         vm.prank(member1);
         uint256 votingId = zarya.createMembershipVoting(testOrgan, member2, DEFAULT_DURATION);
@@ -323,7 +328,7 @@ contract ZaryaTest is Test {
         addrs[0] = member1;
         organs[1] = testOrgan;
         addrs[1] = member2;
-        zarya.initializeOrgans(organs, addrs);
+        _initOrgans(organs, addrs);
 
         vm.prank(member1);
         uint256 votingId = zarya.createMembershipVoting(testOrgan, member3, DEFAULT_DURATION);
@@ -351,7 +356,7 @@ contract ZaryaTest is Test {
         addrs[1] = member2;
         organs[2] = testOrgan;
         addrs[2] = member3;
-        zarya.initializeOrgans(organs, addrs);
+        _initOrgans(organs, addrs);
 
         vm.prank(member1);
         uint256 votingId = zarya.createMembershipVoting(testOrgan, nonMember, DEFAULT_DURATION);
@@ -380,7 +385,7 @@ contract ZaryaTest is Test {
         addrs[0] = member1;
         organs[1] = testOrgan;
         addrs[1] = member2;
-        zarya.initializeOrgans(organs, addrs);
+        _initOrgans(organs, addrs);
 
         vm.prank(member1);
         uint256 votingId = zarya.createMembershipVoting(testOrgan, member3, DEFAULT_DURATION);
@@ -412,7 +417,7 @@ contract ZaryaTest is Test {
         address[] memory addrs = new address[](1);
         organs[0] = testOrgan;
         addrs[0] = member1;
-        zarya.initializeOrgans(organs, addrs);
+        _initOrgans(organs, addrs);
 
         vm.prank(member1);
         uint256 votingId = zarya.createMembershipVoting(testOrgan, member2, DEFAULT_DURATION);
@@ -425,7 +430,7 @@ contract ZaryaTest is Test {
         address[] memory addrs = new address[](1);
         organs[0] = testOrgan;
         addrs[0] = member1;
-        zarya.initializeOrgans(organs, addrs);
+        _initOrgans(organs, addrs);
 
         vm.prank(member1);
         uint256 votingId = zarya.createMembershipVoting(testOrgan, member2, DEFAULT_DURATION);
@@ -442,7 +447,7 @@ contract ZaryaTest is Test {
         address[] memory addrs = new address[](1);
         organs[0] = testOrgan;
         addrs[0] = member1;
-        zarya.initializeOrgans(organs, addrs);
+        _initOrgans(organs, addrs);
 
         vm.startPrank(member1);
 

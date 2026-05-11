@@ -27,6 +27,12 @@ contract Zarya {
     error CannotRemoveChairman(PartyOrgan organ, address member);
     error NotChairman(address caller);
 
+    constructor(address _chairman) {
+        if (_chairman == address(0)) revert InvalidMemberAddress();
+        PartyOrgan chairperson = PartyOrgans.from(PartyOrgans.PartyOrganType.Chairperson, Regions.Region.FEDERAL, 0);
+        _partyMembersRegistry.membersByOrgan[chairperson].add(_chairman);
+    }
+
     modifier onlyMember(PartyOrgan organ) {
         _onlyMember(organ);
         _;
@@ -106,7 +112,7 @@ contract Zarya {
 
     // ============ Initialization ============
 
-    function initializeOrgans(PartyOrgan[] calldata organs, address[] calldata members) external {
+    function initializeOrgans(PartyOrgan[] calldata organs, address[] calldata members) external onlyChairman {
         if (_organsInitialized) {
             revert OrgansAlreadyInitialized();
         }
