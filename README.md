@@ -242,6 +242,7 @@ forge script script/ZaryaRegional.s.sol `
 ## 🔗 Полезные ссылки
 
 - **[Презентация](https://docs.google.com/presentation/d/1mRsgTg3XsrVSvXpRoXnVyLOgX2QSJKPEfJUwnsZz_Uk/edit?usp=sharing)** - детальный обзор системы
+- **[Whitepaper](whitepaper.md)** - техническое описание системы
 
 ## 🤝 Участие в проекте
 

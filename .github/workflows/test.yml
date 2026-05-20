@@ -5,9 +5,6 @@ on:
   pull_request:
   workflow_dispatch:
 
-env:
-  FOUNDRY_PROFILE: ci
-
 jobs:
   check:
     name: Foundry project
@@ -23,9 +20,6 @@ jobs:
       - name: Show Forge version
         run: |
           forge --version
-
-      - name: Install Soldeer
-        run: forge soldeer init --clean
 
       - name: Install Dependencies
         run: forge soldeer install
