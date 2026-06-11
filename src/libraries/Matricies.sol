@@ -45,7 +45,7 @@ library Matricies {
     event ValueAdded(uint256 indexed x, uint256 indexed y, uint64 value, address indexed author);
     event CategoryAdded(uint256 indexed x, uint256 indexed y, uint64 category);
 
-    function isCategoryAllowedStrict(
+    function isCategoryAllowed(
         PairOfMatricies storage self,
         PartyOrgan organ,
         uint256 x,
@@ -92,7 +92,7 @@ library Matricies {
             revert NoStatementSet(isCategorical, y);
         }
         if (isCategorical) {
-            if (!isCategoryAllowedStrict(self, organ, x, y, value)) {
+            if (!isCategoryAllowed(self, organ, x, y, value)) {
                 revert InvalidCategory(value);
             }
             if (
@@ -370,15 +370,13 @@ library Matricies {
         PairOfMatricies storage self,
         uint256 x,
         uint256 y,
-        uint256 index
+        uint32 index
     )
         internal
         view
         returns (DecodedCheckpoint memory)
     {
-        // casting to 'uint32' is safe because Checkpoints.at() expects uint32 and index is validated by the Checkpoints
-        // library forge-lint: disable-next-line(unsafe-typecast)
-        Checkpoints.Checkpoint224 memory checkpoint = self.categoricalMatrix[x][y].categoricalSample.at(uint32(index));
+        Checkpoints.Checkpoint224 memory checkpoint = self.categoricalMatrix[x][y].categoricalSample.at(index);
         return _decodeCheckpoint(checkpoint._key, checkpoint._value);
     }
 
@@ -386,15 +384,13 @@ library Matricies {
         PairOfMatricies storage self,
         uint256 x,
         uint256 y,
-        uint256 index
+        uint32 index
     )
         internal
         view
         returns (DecodedCheckpoint memory)
     {
-        // casting to 'uint32' is safe because Checkpoints.at() expects uint32 and index is validated by the Checkpoints
-        // library forge-lint: disable-next-line(unsafe-typecast)
-        Checkpoints.Checkpoint224 memory checkpoint = self.numericalMatrix[x][y].numericalSample.at(uint32(index));
+        Checkpoints.Checkpoint224 memory checkpoint = self.numericalMatrix[x][y].numericalSample.at(index);
         return _decodeCheckpoint(checkpoint._key, checkpoint._value);
     }
 
@@ -438,7 +434,7 @@ library Matricies {
         PairOfMatricies storage self,
         uint256 x,
         uint256 y,
-        uint256 offset,
+        uint32 offset,
         uint256 limit
     )
         internal
@@ -457,11 +453,8 @@ library Matricies {
         authors = new address[](resultLength);
         values = new uint64[](resultLength);
 
-        for (uint256 i = 0; i < resultLength; i++) {
-            // casting to 'uint32' is safe because offset + i is bounded by resultLength which is <= totalLength (sample
-            // length) forge-lint: disable-next-line(unsafe-typecast)
-            Checkpoints.Checkpoint224 memory checkpoint =
-                self.categoricalMatrix[x][y].categoricalSample.at(uint32(offset + i));
+        for (uint32 i = 0; i < resultLength; i++) {
+            Checkpoints.Checkpoint224 memory checkpoint = self.categoricalMatrix[x][y].categoricalSample.at(offset + i);
             DecodedCheckpoint memory decoded = _decodeCheckpoint(checkpoint._key, checkpoint._value);
             timestamps[i] = decoded.timestamp;
             authors[i] = decoded.author;
@@ -473,7 +466,7 @@ library Matricies {
         PairOfMatricies storage self,
         uint256 x,
         uint256 y,
-        uint256 offset,
+        uint32 offset,
         uint256 limit
     )
         internal
@@ -492,11 +485,8 @@ library Matricies {
         authors = new address[](resultLength);
         values = new uint64[](resultLength);
 
-        for (uint256 i = 0; i < resultLength; i++) {
-            // casting to 'uint32' is safe because offset + i is bounded by resultLength which is <= totalLength (sample
-            // length) forge-lint: disable-next-line(unsafe-typecast)
-            Checkpoints.Checkpoint224 memory checkpoint =
-                self.numericalMatrix[x][y].numericalSample.at(uint32(offset + i));
+        for (uint32 i = 0; i < resultLength; i++) {
+            Checkpoints.Checkpoint224 memory checkpoint = self.numericalMatrix[x][y].numericalSample.at(offset + i);
             DecodedCheckpoint memory decoded = _decodeCheckpoint(checkpoint._key, checkpoint._value);
             timestamps[i] = decoded.timestamp;
             authors[i] = decoded.author;

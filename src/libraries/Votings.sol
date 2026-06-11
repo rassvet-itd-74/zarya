@@ -81,6 +81,12 @@ library Votings {
         uint256 totalVotes;
     }
 
+    struct VotingEligibilityParameters {
+        uint256 quorum;
+        uint256 approvalPercentage;
+        uint256 approvalPercentageBase; // BPS = 10000, % = 100, etc.
+    }
+
     struct Voting {
         uint256 id;
         address author;
@@ -98,6 +104,7 @@ library Votings {
         StatementSuggestion statementSuggestionData;
         CategoricalValueSuggestion categoricalValueSuggestionData;
         NumericalValueSuggestion numericalValueSuggestionData;
+        VotingEligibilityParameters eligibilityParameters;
         mapping(address partyMember => bool) hasVoted;
     }
 
@@ -145,7 +152,10 @@ library Votings {
         address author,
         uint256 duration,
         PartyOrgan organ,
-        address member
+        address member,
+        uint256 quorum,
+        uint256 approvalPercentage,
+        uint256 approvalPercentageBase
     )
         internal
     {
@@ -155,6 +165,9 @@ library Votings {
         self.endTime = block.timestamp + duration;
         self.suggestionType = SuggestionType.Membership;
         self.memberSuggestionData = MembershipSuggestion({organ: organ, member: member});
+        self.eligibilityParameters = VotingEligibilityParameters({
+            quorum: quorum, approvalPercentage: approvalPercentage, approvalPercentageBase: approvalPercentageBase
+        });
 
         emit VotingCreated(id, author, self.startTime, self.endTime, SuggestionType.Membership);
         emit MembershipVotingCreated(id, organ, member);
@@ -166,7 +179,10 @@ library Votings {
         address author,
         uint256 duration,
         PartyOrgan organ,
-        address member
+        address member,
+        uint256 quorum,
+        uint256 approvalPercentage,
+        uint256 approvalPercentageBase
     )
         internal
     {
@@ -176,6 +192,9 @@ library Votings {
         self.endTime = block.timestamp + duration;
         self.suggestionType = SuggestionType.MembershipRevocation;
         self.memberRevocationSuggestionData = MembershipRevocationSuggestion({organ: organ, member: member});
+        self.eligibilityParameters = VotingEligibilityParameters({
+            quorum: quorum, approvalPercentage: approvalPercentage, approvalPercentageBase: approvalPercentageBase
+        });
 
         emit VotingCreated(id, author, self.startTime, self.endTime, SuggestionType.MembershipRevocation);
         emit MembershipRevocationVotingCreated(id, organ, member);
@@ -190,7 +209,10 @@ library Votings {
         uint256 x,
         uint256 y,
         uint64 category,
-        string memory categoryName
+        string memory categoryName,
+        uint256 quorum,
+        uint256 approvalPercentage,
+        uint256 approvalPercentageBase
     )
         internal
     {
@@ -201,6 +223,9 @@ library Votings {
         self.suggestionType = SuggestionType.Category;
         self.categorySuggestionData =
             CategorySuggestion({organ: organ, x: x, y: y, category: category, categoryName: categoryName});
+        self.eligibilityParameters = VotingEligibilityParameters({
+            quorum: quorum, approvalPercentage: approvalPercentage, approvalPercentageBase: approvalPercentageBase
+        });
 
         emit VotingCreated(id, author, self.startTime, self.endTime, SuggestionType.Category);
         emit CategoryVotingCreated(id, organ, x, y, category, categoryName);
@@ -214,7 +239,10 @@ library Votings {
         PartyOrgan organ,
         uint256 x,
         uint256 y,
-        uint8 decimals
+        uint8 decimals,
+        uint256 quorum,
+        uint256 approvalPercentage,
+        uint256 approvalPercentageBase
     )
         internal
     {
@@ -224,6 +252,9 @@ library Votings {
         self.endTime = block.timestamp + duration;
         self.suggestionType = SuggestionType.Decimals;
         self.decimalsSuggestionData = DecimalsSuggestion({organ: organ, x: x, y: y, decimals: decimals});
+        self.eligibilityParameters = VotingEligibilityParameters({
+            quorum: quorum, approvalPercentage: approvalPercentage, approvalPercentageBase: approvalPercentageBase
+        });
 
         emit VotingCreated(id, author, self.startTime, self.endTime, SuggestionType.Decimals);
         emit DecimalsVotingCreated(id, organ, x, y, decimals);
@@ -236,7 +267,10 @@ library Votings {
         uint256 duration,
         bool isCategorical,
         uint256 x,
-        string memory theme
+        string memory theme,
+        uint256 quorum,
+        uint256 approvalPercentage,
+        uint256 approvalPercentageBase
     )
         internal
     {
@@ -246,6 +280,9 @@ library Votings {
         self.endTime = block.timestamp + duration;
         self.suggestionType = SuggestionType.Theme;
         self.themeSuggestionData = ThemeSuggestion({isCategorical: isCategorical, x: x, theme: theme});
+        self.eligibilityParameters = VotingEligibilityParameters({
+            quorum: quorum, approvalPercentage: approvalPercentage, approvalPercentageBase: approvalPercentageBase
+        });
 
         emit VotingCreated(id, author, self.startTime, self.endTime, SuggestionType.Theme);
         emit ThemeVotingCreated(id, isCategorical, x, theme);
@@ -259,7 +296,10 @@ library Votings {
         bool isCategorical,
         uint256 x,
         uint256 y,
-        string memory statement
+        string memory statement,
+        uint256 quorum,
+        uint256 approvalPercentage,
+        uint256 approvalPercentageBase
     )
         internal
     {
@@ -270,6 +310,9 @@ library Votings {
         self.suggestionType = SuggestionType.Statement;
         self.statementSuggestionData =
             StatementSuggestion({isCategorical: isCategorical, x: x, y: y, statement: statement});
+        self.eligibilityParameters = VotingEligibilityParameters({
+            quorum: quorum, approvalPercentage: approvalPercentage, approvalPercentageBase: approvalPercentageBase
+        });
 
         emit VotingCreated(id, author, self.startTime, self.endTime, SuggestionType.Statement);
         emit StatementVotingCreated(id, isCategorical, x, y, statement);
@@ -284,7 +327,10 @@ library Votings {
         uint256 x,
         uint256 y,
         uint64 value,
-        address valueAuthor
+        address valueAuthor,
+        uint256 quorum,
+        uint256 approvalPercentage,
+        uint256 approvalPercentageBase
     )
         internal
     {
@@ -295,6 +341,9 @@ library Votings {
         self.suggestionType = SuggestionType.CategoricalValue;
         self.categoricalValueSuggestionData =
             CategoricalValueSuggestion({organ: organ, x: x, y: y, value: value, author: valueAuthor});
+        self.eligibilityParameters = VotingEligibilityParameters({
+            quorum: quorum, approvalPercentage: approvalPercentage, approvalPercentageBase: approvalPercentageBase
+        });
 
         emit VotingCreated(id, author, self.startTime, self.endTime, SuggestionType.CategoricalValue);
         emit CategoricalValueVotingCreated(id, organ, x, y, value, valueAuthor);
@@ -309,7 +358,10 @@ library Votings {
         uint256 x,
         uint256 y,
         uint64 value,
-        address valueAuthor
+        address valueAuthor,
+        uint256 quorum,
+        uint256 approvalPercentage,
+        uint256 approvalPercentageBase
     )
         internal
     {
@@ -320,6 +372,9 @@ library Votings {
         self.suggestionType = SuggestionType.NumericalValue;
         self.numericalValueSuggestionData =
             NumericalValueSuggestion({organ: organ, x: x, y: y, value: value, author: valueAuthor});
+        self.eligibilityParameters = VotingEligibilityParameters({
+            quorum: quorum, approvalPercentage: approvalPercentage, approvalPercentageBase: approvalPercentageBase
+        });
 
         emit VotingCreated(id, author, self.startTime, self.endTime, SuggestionType.NumericalValue);
         emit NumericalValueVotingCreated(id, organ, x, y, value, valueAuthor);
@@ -353,8 +408,6 @@ library Votings {
 
     function executeVoting(
         Voting storage self,
-        uint256 minimumQuorum,
-        uint256 minimumApprovalPercentage,
         Matricies.PairOfMatricies storage matricies,
         PartyOrgans.MembersRegistry storage membersRegistry
     )
@@ -367,13 +420,14 @@ library Votings {
         VoteResults memory results = getVoteResults(self);
 
         // Check quorum (minimum participation)
-        if (results.totalVotes < minimumQuorum) {
+        if (results.totalVotes < self.eligibilityParameters.quorum) {
             revert InsufficientVotes(results.forVotes, results.againstVotes);
         }
 
         // Check approval percentage (simple majority or supermajority as needed)
-        uint256 approvalPercentage = (results.forVotes * 100) / results.totalVotes;
-        success = approvalPercentage >= minimumApprovalPercentage;
+        uint256 approvalPercentage =
+            (results.forVotes * self.eligibilityParameters.approvalPercentageBase) / results.totalVotes;
+        success = approvalPercentage > self.eligibilityParameters.approvalPercentage;
 
         // If successful, execute the suggestion by modifying the matrices
         if (success) {

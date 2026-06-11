@@ -15,11 +15,17 @@ contract Zarya {
     using Matricies for Matricies.PairOfMatricies;
 
     uint256 public nextVotingId;
+
     bool private _organsInitialized;
 
     mapping(uint256 => Votings.Voting) internal _votings;
+    mapping(PartyOrgan => Votings.VotingEligibilityParameters) internal _votingEligibilityParametersByOrgan;
+
     PartyOrgans.MembersRegistry internal _partyMembersRegistry;
     Matricies.PairOfMatricies internal _matricies;
+
+    Votings.VotingEligibilityParameters public simpleMajority =
+        Votings.VotingEligibilityParameters({quorum: 1, approvalPercentage: 50, approvalPercentageBase: 100});
 
     error OrgansAlreadyInitialized();
     error InvalidMemberAddress();
@@ -27,21 +33,13 @@ contract Zarya {
     error CannotRemoveChairman(PartyOrgan organ, address member);
     error NotChairman(address caller);
 
-    constructor(address _chairman) {
-        if (_chairman == address(0)) revert InvalidMemberAddress();
-        PartyOrgan chairperson = PartyOrgans.from(PartyOrgans.PartyOrganType.Chairperson, Regions.Region.FEDERAL, 0);
-        _partyMembersRegistry.membersByOrgan[chairperson].add(_chairman);
-    }
-
     modifier onlyMember(PartyOrgan organ) {
         _onlyMember(organ);
         _;
     }
 
     modifier onlyChairman() {
-        if (!_isChairman(msg.sender)) {
-            revert NotChairman(msg.sender);
-        }
+        _onlyChairman();
         _;
     }
 
@@ -50,87 +48,21 @@ contract Zarya {
         _;
     }
 
-    function _onlyMember(PartyOrgan organ) internal view {
-        if (!_partyMembersRegistry.membersByOrgan[organ].contains(msg.sender)) {
-            revert PartyOrgans.NotActiveMember(organ, msg.sender);
-        }
-    }
-
-    function _votingExists(uint256 votingId) internal view {
-        if (votingId > nextVotingId) {
-            revert Votings.VotingNotFound(votingId);
-        }
-    }
-
-    function _onlyMemberOrChairman(PartyOrgan organ) internal view {
-        EnumerableSet.AddressSet storage members = _partyMembersRegistry.membersByOrgan[organ];
-
-        if (!members.contains(msg.sender)) {
-            PartyOrgan chairperson = PartyOrgans.from(PartyOrgans.PartyOrganType.Chairperson, Regions.Region.FEDERAL, 0);
-            EnumerableSet.AddressSet storage chairmanMembers = _partyMembersRegistry.membersByOrgan[chairperson];
-
-            if (!chairmanMembers.contains(msg.sender)) {
-                revert PartyOrgans.NotActiveMember(organ, msg.sender);
-            }
-        }
-    }
-
-    function _getNextVotingId() internal returns (uint256) {
-        unchecked {
-            return ++nextVotingId;
-        }
-    }
-
-    function _isChairman(address member) internal view returns (bool) {
+    constructor(address _chairman) {
+        if (_chairman == address(0)) revert InvalidMemberAddress();
         PartyOrgan chairperson = PartyOrgans.from(PartyOrgans.PartyOrganType.Chairperson, Regions.Region.FEDERAL, 0);
-        return _partyMembersRegistry.membersByOrgan[chairperson].contains(member);
+        _partyMembersRegistry.membersByOrgan[chairperson].add(_chairman);
     }
-
-    function _createValueVoting(
-        bool isCategorical,
-        PartyOrgan organ,
-        uint256 x,
-        uint256 y,
-        uint64 value,
-        address valueAuthor,
-        uint256 duration
-    )
-        internal
-        returns (uint256 votingId)
-    {
-        votingId = _getNextVotingId();
-        if (isCategorical) {
-            _votings[votingId].createCategoricalValueVoting(
-                votingId, msg.sender, duration, organ, x, y, value, valueAuthor
-            );
-        } else {
-            _votings[votingId].createNumericalValueVoting(
-                votingId, msg.sender, duration, organ, x, y, value, valueAuthor
-            );
-        }
-    }
-
-    // ============ Initialization ============
 
     function initializeOrgans(PartyOrgan[] calldata organs, address[] calldata members) external onlyChairman {
-        if (_organsInitialized) {
-            revert OrgansAlreadyInitialized();
-        }
-        if (organs.length == 0 || organs.length != members.length) {
-            revert EmptyInitializationData();
-        }
-
+        if (_organsInitialized) revert OrgansAlreadyInitialized();
+        if (organs.length == 0 || organs.length != members.length) revert EmptyInitializationData();
         _organsInitialized = true;
-
         for (uint256 i = 0; i < organs.length; i++) {
-            if (members[i] == address(0)) {
-                revert InvalidMemberAddress();
-            }
+            if (members[i] == address(0)) revert InvalidMemberAddress();
             _partyMembersRegistry.membersByOrgan[organs[i]].add(members[i]);
         }
     }
-
-    // ============ Membership Votings ============
 
     function createMembershipVoting(
         PartyOrgan organ,
@@ -142,7 +74,16 @@ contract Zarya {
     {
         _onlyMemberOrChairman(organ);
         votingId = _getNextVotingId();
-        _votings[votingId].createMembershipVoting(votingId, msg.sender, duration, organ, member);
+        _votings[votingId].createMembershipVoting(
+            votingId,
+            msg.sender,
+            duration,
+            organ,
+            member,
+            _votingEligibilityParametersByOrgan[organ].quorum,
+            _votingEligibilityParametersByOrgan[organ].approvalPercentage,
+            _votingEligibilityParametersByOrgan[organ].approvalPercentageBase
+        );
     }
 
     function createMembershipRevocationVoting(
@@ -154,16 +95,19 @@ contract Zarya {
         returns (uint256 votingId)
     {
         _onlyMemberOrChairman(organ);
-
-        if (_isChairman(member)) {
-            revert CannotRemoveChairman(organ, member);
-        }
-
+        if (_isChairman(member)) revert CannotRemoveChairman(organ, member);
         votingId = _getNextVotingId();
-        _votings[votingId].createMembershipRevocationVoting(votingId, msg.sender, duration, organ, member);
+        _votings[votingId].createMembershipRevocationVoting(
+            votingId,
+            msg.sender,
+            duration,
+            organ,
+            member,
+            _votingEligibilityParametersByOrgan[organ].quorum,
+            _votingEligibilityParametersByOrgan[organ].approvalPercentage,
+            _votingEligibilityParametersByOrgan[organ].approvalPercentageBase
+        );
     }
-
-    // ============ Matrix Configuration Votings ============
 
     function createCategoryVoting(
         PartyOrgan organ,
@@ -178,7 +122,19 @@ contract Zarya {
         returns (uint256 votingId)
     {
         votingId = _getNextVotingId();
-        _votings[votingId].createCategoryVoting(votingId, msg.sender, duration, organ, x, y, category, categoryName);
+        _votings[votingId].createCategoryVoting(
+            votingId,
+            msg.sender,
+            duration,
+            organ,
+            x,
+            y,
+            category,
+            categoryName,
+            _votingEligibilityParametersByOrgan[organ].quorum,
+            _votingEligibilityParametersByOrgan[organ].approvalPercentage,
+            _votingEligibilityParametersByOrgan[organ].approvalPercentageBase
+        );
     }
 
     function createDecimalsVoting(
@@ -193,10 +149,19 @@ contract Zarya {
         returns (uint256 votingId)
     {
         votingId = _getNextVotingId();
-        _votings[votingId].createDecimalsVoting(votingId, msg.sender, duration, organ, x, y, decimals);
+        _votings[votingId].createDecimalsVoting(
+            votingId,
+            msg.sender,
+            duration,
+            organ,
+            x,
+            y,
+            decimals,
+            _votingEligibilityParametersByOrgan[organ].quorum,
+            _votingEligibilityParametersByOrgan[organ].approvalPercentage,
+            _votingEligibilityParametersByOrgan[organ].approvalPercentageBase
+        );
     }
-
-    // ============ Theme, Statement and Value Votings ============
 
     function createThemeVoting(
         bool isCategorical,
@@ -208,7 +173,17 @@ contract Zarya {
         returns (uint256 votingId)
     {
         votingId = _getNextVotingId();
-        _votings[votingId].createThemeVoting(votingId, msg.sender, duration, isCategorical, x, theme);
+        _votings[votingId].createThemeVoting(
+            votingId,
+            msg.sender,
+            duration,
+            isCategorical,
+            x,
+            theme,
+            simpleMajority.quorum,
+            simpleMajority.approvalPercentage,
+            simpleMajority.approvalPercentageBase
+        );
     }
 
     function createStatementVoting(
@@ -222,7 +197,18 @@ contract Zarya {
         returns (uint256 votingId)
     {
         votingId = _getNextVotingId();
-        _votings[votingId].createStatementVoting(votingId, msg.sender, duration, isCategorical, x, y, statement);
+        _votings[votingId].createStatementVoting(
+            votingId,
+            msg.sender,
+            duration,
+            isCategorical,
+            x,
+            y,
+            statement,
+            simpleMajority.quorum,
+            simpleMajority.approvalPercentage,
+            simpleMajority.approvalPercentageBase
+        );
     }
 
     function createCategoricalValueVoting(
@@ -237,7 +223,18 @@ contract Zarya {
         onlyMember(organ)
         returns (uint256 votingId)
     {
-        return _createValueVoting(true, organ, x, y, value, valueAuthor, duration);
+        return _createValueVoting(
+            true,
+            organ,
+            x,
+            y,
+            value,
+            valueAuthor,
+            duration,
+            _votingEligibilityParametersByOrgan[organ].quorum,
+            _votingEligibilityParametersByOrgan[organ].approvalPercentage,
+            _votingEligibilityParametersByOrgan[organ].approvalPercentageBase
+        );
     }
 
     function createNumericalValueVoting(
@@ -252,32 +249,43 @@ contract Zarya {
         onlyMember(organ)
         returns (uint256 votingId)
     {
-        return _createValueVoting(false, organ, x, y, value, valueAuthor, duration);
+        return _createValueVoting(
+            false,
+            organ,
+            x,
+            y,
+            value,
+            valueAuthor,
+            duration,
+            _votingEligibilityParametersByOrgan[organ].quorum,
+            _votingEligibilityParametersByOrgan[organ].approvalPercentage,
+            _votingEligibilityParametersByOrgan[organ].approvalPercentageBase
+        );
     }
-
-    // ============ Voting Participation ============
 
     function castVote(uint256 votingId, bool support, PartyOrgan organ) external votingExists(votingId) {
         _onlyMemberOrChairman(organ);
         _votings[votingId].castVote(support, msg.sender);
     }
 
-    function executeVoting(
-        uint256 votingId,
-        uint256 minimumQuorum,
-        uint256 minimumApprovalPercentage
-    )
-        external
-        votingExists(votingId)
-        returns (bool success)
-    {
-        return
-            _votings[votingId].executeVoting(
-                minimumQuorum, minimumApprovalPercentage, _matricies, _partyMembersRegistry
-            );
+    function setMinimumQuorum(PartyOrgan organ, uint256 value) external onlyChairman {
+        _votingEligibilityParametersByOrgan[organ].quorum = value;
     }
 
-    // ============ Voting Views ============
+    function setMinimumApprovalPercentage(PartyOrgan organ, uint256 value) external onlyChairman {
+        _votingEligibilityParametersByOrgan[organ].approvalPercentage = value;
+    }
+
+    function executeVoting(uint256 votingId) external votingExists(votingId) returns (bool success) {
+        return _votings[votingId].executeVoting(_matricies, _partyMembersRegistry);
+    }
+
+    function transferChairmanship(address newChairman) external onlyChairman {
+        if (newChairman == address(0)) revert InvalidMemberAddress();
+        PartyOrgan chairperson = PartyOrgans.from(PartyOrgans.PartyOrganType.Chairperson, Regions.Region.FEDERAL, 0);
+        _partyMembersRegistry.membersByOrgan[chairperson].remove(msg.sender);
+        _partyMembersRegistry.membersByOrgan[chairperson].add(newChairman);
+    }
 
     function getVotingResults(uint256 votingId)
         external
@@ -300,46 +308,9 @@ contract Zarya {
         return _votings[votingId].isFinalized();
     }
 
-    // ============ Party Organ Helper Functions ============
-
-    function getPartyOrgan(
-        PartyOrgans.PartyOrganType organType,
-        Regions.Region region,
-        uint256 number
-    )
-        external
-        pure
-        returns (PartyOrgan)
-    {
-        return PartyOrgans.from(organType, region, number);
-    }
-
-    function getPartyOrganIdentifier(
-        PartyOrgans.PartyOrganType organType,
-        Regions.Region region,
-        uint256 number
-    )
-        external
-        pure
-        returns (string memory)
-    {
-        return PartyOrgans.getPartyOrganIdentifier(organType, region, number);
-    }
-
     function isMember(PartyOrgan organ, address member) external view returns (bool) {
         return _partyMembersRegistry.membersByOrgan[organ].contains(member);
     }
-
-    function transferChairmanship(address newChairman) external onlyChairman {
-        if (newChairman == address(0)) {
-            revert InvalidMemberAddress();
-        }
-        PartyOrgan chairperson = PartyOrgans.from(PartyOrgans.PartyOrganType.Chairperson, Regions.Region.FEDERAL, 0);
-        _partyMembersRegistry.membersByOrgan[chairperson].remove(msg.sender);
-        _partyMembersRegistry.membersByOrgan[chairperson].add(newChairman);
-    }
-
-    // ============ Matrix Views ============
 
     function getTheme(bool isCategorical, uint256 x) external view returns (string memory) {
         return _matricies.getTheme(isCategorical, x);
@@ -369,6 +340,14 @@ contract Zarya {
         return _matricies.isCategoryAllowed(x, y, category);
     }
 
+    function getCategoricalSampleLength(uint256 x, uint256 y) external view returns (uint256) {
+        return _matricies.getCategoricalSampleLength(x, y);
+    }
+
+    function getNumericalSampleLength(uint256 x, uint256 y) external view returns (uint256) {
+        return _matricies.getNumericalSampleLength(x, y);
+    }
+
     function getCategoricalCellInfo(
         uint256 x,
         uint256 y
@@ -391,14 +370,6 @@ contract Zarya {
         return _matricies.getNumericalCellInfo(x, y);
     }
 
-    function getCategoricalSampleLength(uint256 x, uint256 y) external view returns (uint256) {
-        return _matricies.getCategoricalSampleLength(x, y);
-    }
-
-    function getNumericalSampleLength(uint256 x, uint256 y) external view returns (uint256) {
-        return _matricies.getNumericalSampleLength(x, y);
-    }
-
     function getCategoricalLatestValue(uint256 x, uint256 y)
         external
         view
@@ -414,7 +385,7 @@ contract Zarya {
     function getCategoricalValueAt(
         uint256 x,
         uint256 y,
-        uint256 index
+        uint32 index
     )
         external
         view
@@ -426,7 +397,7 @@ contract Zarya {
     function getNumericalValueAt(
         uint256 x,
         uint256 y,
-        uint256 index
+        uint32 index
     )
         external
         view
@@ -462,7 +433,7 @@ contract Zarya {
     function getCategoricalHistory(
         uint256 x,
         uint256 y,
-        uint256 offset,
+        uint32 offset,
         uint256 limit
     )
         external
@@ -475,7 +446,7 @@ contract Zarya {
     function getNumericalHistory(
         uint256 x,
         uint256 y,
-        uint256 offset,
+        uint32 offset,
         uint256 limit
     )
         external
@@ -483,5 +454,110 @@ contract Zarya {
         returns (uint32[] memory timestamps, address[] memory authors, uint64[] memory values)
     {
         return _matricies.getNumericalHistory(x, y, offset, limit);
+    }
+
+    function getPartyOrgan(
+        PartyOrgans.PartyOrganType organType,
+        Regions.Region region,
+        uint256 number
+    )
+        external
+        pure
+        returns (PartyOrgan)
+    {
+        return PartyOrgans.from(organType, region, number);
+    }
+
+    function getPartyOrganIdentifier(
+        PartyOrgans.PartyOrganType organType,
+        Regions.Region region,
+        uint256 number
+    )
+        external
+        pure
+        returns (string memory)
+    {
+        return PartyOrgans.getPartyOrganIdentifier(organType, region, number);
+    }
+
+    function _getNextVotingId() internal returns (uint256) {
+        unchecked {
+            return ++nextVotingId;
+        }
+    }
+
+    function _createValueVoting(
+        bool isCategorical,
+        PartyOrgan organ,
+        uint256 x,
+        uint256 y,
+        uint64 value,
+        address valueAuthor,
+        uint256 duration,
+        uint256 quorum,
+        uint256 approvalPercentage,
+        uint256 approvalPercentageBase
+    )
+        internal
+        returns (uint256 votingId)
+    {
+        votingId = _getNextVotingId();
+        if (isCategorical) {
+            _votings[votingId].createCategoricalValueVoting(
+                votingId,
+                msg.sender,
+                duration,
+                organ,
+                x,
+                y,
+                value,
+                valueAuthor,
+                quorum,
+                approvalPercentage,
+                approvalPercentageBase
+            );
+        } else {
+            _votings[votingId].createNumericalValueVoting(
+                votingId,
+                msg.sender,
+                duration,
+                organ,
+                x,
+                y,
+                value,
+                valueAuthor,
+                quorum,
+                approvalPercentage,
+                approvalPercentageBase
+            );
+        }
+    }
+
+    function _onlyMember(PartyOrgan organ) internal view {
+        if (!_partyMembersRegistry.membersByOrgan[organ].contains(msg.sender)) {
+            revert PartyOrgans.NotActiveMember(organ, msg.sender);
+        }
+    }
+
+    function _votingExists(uint256 votingId) internal view {
+        if (votingId > nextVotingId) revert Votings.VotingNotFound(votingId);
+    }
+
+    function _onlyMemberOrChairman(PartyOrgan organ) internal view {
+        if (!_partyMembersRegistry.membersByOrgan[organ].contains(msg.sender)) {
+            PartyOrgan chairperson = PartyOrgans.from(PartyOrgans.PartyOrganType.Chairperson, Regions.Region.FEDERAL, 0);
+            if (!_partyMembersRegistry.membersByOrgan[chairperson].contains(msg.sender)) {
+                revert PartyOrgans.NotActiveMember(organ, msg.sender);
+            }
+        }
+    }
+
+    function _onlyChairman() internal view {
+        if (!_isChairman(msg.sender)) revert NotChairman(msg.sender);
+    }
+
+    function _isChairman(address member) internal view returns (bool) {
+        PartyOrgan chairperson = PartyOrgans.from(PartyOrgans.PartyOrganType.Chairperson, Regions.Region.FEDERAL, 0);
+        return _partyMembersRegistry.membersByOrgan[chairperson].contains(member);
     }
 }
