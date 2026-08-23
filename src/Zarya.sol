@@ -25,7 +25,7 @@ contract Zarya {
     Matricies.PairOfMatricies internal _matricies;
 
     Votings.VotingEligibilityParameters public simpleMajority =
-        Votings.VotingEligibilityParameters({quorum: 1, approvalPercentage: 50, approvalPercentageBase: 100});
+        Votings.VotingEligibilityParameters({quorum: 1, approvalPercentage: 5000, approvalPercentageBase: 10_000});
 
     error OrgansAlreadyInitialized();
     error InvalidMemberAddress();
@@ -74,15 +74,16 @@ contract Zarya {
     {
         _onlyMemberOrChairman(organ);
         votingId = _getNextVotingId();
+        Votings.VotingEligibilityParameters memory params = _getEligibilityParams(organ);
         _votings[votingId].createMembershipVoting(
             votingId,
             msg.sender,
             duration,
             organ,
             member,
-            _votingEligibilityParametersByOrgan[organ].quorum,
-            _votingEligibilityParametersByOrgan[organ].approvalPercentage,
-            _votingEligibilityParametersByOrgan[organ].approvalPercentageBase
+            params.quorum,
+            params.approvalPercentage,
+            params.approvalPercentageBase
         );
     }
 
@@ -97,15 +98,16 @@ contract Zarya {
         _onlyMemberOrChairman(organ);
         if (_isChairman(member)) revert CannotRemoveChairman(organ, member);
         votingId = _getNextVotingId();
+        Votings.VotingEligibilityParameters memory params = _getEligibilityParams(organ);
         _votings[votingId].createMembershipRevocationVoting(
             votingId,
             msg.sender,
             duration,
             organ,
             member,
-            _votingEligibilityParametersByOrgan[organ].quorum,
-            _votingEligibilityParametersByOrgan[organ].approvalPercentage,
-            _votingEligibilityParametersByOrgan[organ].approvalPercentageBase
+            params.quorum,
+            params.approvalPercentage,
+            params.approvalPercentageBase
         );
     }
 
@@ -122,6 +124,7 @@ contract Zarya {
         returns (uint256 votingId)
     {
         votingId = _getNextVotingId();
+        Votings.VotingEligibilityParameters memory params = _getEligibilityParams(organ);
         _votings[votingId].createCategoryVoting(
             votingId,
             msg.sender,
@@ -131,9 +134,9 @@ contract Zarya {
             y,
             category,
             categoryName,
-            _votingEligibilityParametersByOrgan[organ].quorum,
-            _votingEligibilityParametersByOrgan[organ].approvalPercentage,
-            _votingEligibilityParametersByOrgan[organ].approvalPercentageBase
+            params.quorum,
+            params.approvalPercentage,
+            params.approvalPercentageBase
         );
     }
 
@@ -149,6 +152,7 @@ contract Zarya {
         returns (uint256 votingId)
     {
         votingId = _getNextVotingId();
+        Votings.VotingEligibilityParameters memory params = _getEligibilityParams(organ);
         _votings[votingId].createDecimalsVoting(
             votingId,
             msg.sender,
@@ -157,9 +161,9 @@ contract Zarya {
             x,
             y,
             decimals,
-            _votingEligibilityParametersByOrgan[organ].quorum,
-            _votingEligibilityParametersByOrgan[organ].approvalPercentage,
-            _votingEligibilityParametersByOrgan[organ].approvalPercentageBase
+            params.quorum,
+            params.approvalPercentage,
+            params.approvalPercentageBase
         );
     }
 
@@ -223,6 +227,7 @@ contract Zarya {
         onlyMember(organ)
         returns (uint256 votingId)
     {
+        Votings.VotingEligibilityParameters memory params = _getEligibilityParams(organ);
         return _createValueVoting(
             true,
             organ,
@@ -231,9 +236,9 @@ contract Zarya {
             value,
             valueAuthor,
             duration,
-            _votingEligibilityParametersByOrgan[organ].quorum,
-            _votingEligibilityParametersByOrgan[organ].approvalPercentage,
-            _votingEligibilityParametersByOrgan[organ].approvalPercentageBase
+            params.quorum,
+            params.approvalPercentage,
+            params.approvalPercentageBase
         );
     }
 
@@ -249,6 +254,7 @@ contract Zarya {
         onlyMember(organ)
         returns (uint256 votingId)
     {
+        Votings.VotingEligibilityParameters memory params = _getEligibilityParams(organ);
         return _createValueVoting(
             false,
             organ,
@@ -257,14 +263,17 @@ contract Zarya {
             value,
             valueAuthor,
             duration,
-            _votingEligibilityParametersByOrgan[organ].quorum,
-            _votingEligibilityParametersByOrgan[organ].approvalPercentage,
-            _votingEligibilityParametersByOrgan[organ].approvalPercentageBase
+            params.quorum,
+            params.approvalPercentage,
+            params.approvalPercentageBase
         );
     }
 
-    function castVote(uint256 votingId, bool support, PartyOrgan organ) external votingExists(votingId) {
-        _onlyMemberOrChairman(organ);
+    function castVote(uint256 votingId, bool support) external votingExists(votingId) {
+        PartyOrgan governingOrgan = _votings[votingId].governingOrgan;
+        if (governingOrgan != PartyOrgans.ZERO_PARTY_ORGAN) {
+            _onlyMemberOrChairman(governingOrgan);
+        }
         _votings[votingId].castVote(support, msg.sender);
     }
 
@@ -274,6 +283,10 @@ contract Zarya {
 
     function setMinimumApprovalPercentage(PartyOrgan organ, uint256 value) external onlyChairman {
         _votingEligibilityParametersByOrgan[organ].approvalPercentage = value;
+    }
+
+    function setMinimumApprovalPercentageBase(PartyOrgan organ, uint256 value) external onlyChairman {
+        _votingEligibilityParametersByOrgan[organ].approvalPercentageBase = value;
     }
 
     function executeVoting(uint256 votingId) external votingExists(votingId) returns (bool success) {
@@ -480,6 +493,16 @@ contract Zarya {
         return PartyOrgans.getPartyOrganIdentifier(organType, region, number);
     }
 
+    function _getEligibilityParams(PartyOrgan organ)
+        internal
+        view
+        returns (Votings.VotingEligibilityParameters memory)
+    {
+        Votings.VotingEligibilityParameters storage params = _votingEligibilityParametersByOrgan[organ];
+        if (params.approvalPercentageBase == 0) return simpleMajority;
+        return params;
+    }
+
     function _getNextVotingId() internal returns (uint256) {
         unchecked {
             return ++nextVotingId;
@@ -540,7 +563,7 @@ contract Zarya {
     }
 
     function _votingExists(uint256 votingId) internal view {
-        if (votingId > nextVotingId) revert Votings.VotingNotFound(votingId);
+        if (votingId == 0 || votingId > nextVotingId) revert Votings.VotingNotFound(votingId);
     }
 
     function _onlyMemberOrChairman(PartyOrgan organ) internal view {

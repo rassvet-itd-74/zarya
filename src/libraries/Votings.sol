@@ -105,6 +105,7 @@ library Votings {
         CategoricalValueSuggestion categoricalValueSuggestionData;
         NumericalValueSuggestion numericalValueSuggestionData;
         VotingEligibilityParameters eligibilityParameters;
+        PartyOrgan governingOrgan;
         mapping(address partyMember => bool) hasVoted;
     }
 
@@ -165,6 +166,7 @@ library Votings {
         self.endTime = block.timestamp + duration;
         self.suggestionType = SuggestionType.Membership;
         self.memberSuggestionData = MembershipSuggestion({organ: organ, member: member});
+        self.governingOrgan = organ;
         self.eligibilityParameters = VotingEligibilityParameters({
             quorum: quorum, approvalPercentage: approvalPercentage, approvalPercentageBase: approvalPercentageBase
         });
@@ -192,6 +194,7 @@ library Votings {
         self.endTime = block.timestamp + duration;
         self.suggestionType = SuggestionType.MembershipRevocation;
         self.memberRevocationSuggestionData = MembershipRevocationSuggestion({organ: organ, member: member});
+        self.governingOrgan = organ;
         self.eligibilityParameters = VotingEligibilityParameters({
             quorum: quorum, approvalPercentage: approvalPercentage, approvalPercentageBase: approvalPercentageBase
         });
@@ -223,6 +226,7 @@ library Votings {
         self.suggestionType = SuggestionType.Category;
         self.categorySuggestionData =
             CategorySuggestion({organ: organ, x: x, y: y, category: category, categoryName: categoryName});
+        self.governingOrgan = organ;
         self.eligibilityParameters = VotingEligibilityParameters({
             quorum: quorum, approvalPercentage: approvalPercentage, approvalPercentageBase: approvalPercentageBase
         });
@@ -252,6 +256,7 @@ library Votings {
         self.endTime = block.timestamp + duration;
         self.suggestionType = SuggestionType.Decimals;
         self.decimalsSuggestionData = DecimalsSuggestion({organ: organ, x: x, y: y, decimals: decimals});
+        self.governingOrgan = organ;
         self.eligibilityParameters = VotingEligibilityParameters({
             quorum: quorum, approvalPercentage: approvalPercentage, approvalPercentageBase: approvalPercentageBase
         });
@@ -341,6 +346,7 @@ library Votings {
         self.suggestionType = SuggestionType.CategoricalValue;
         self.categoricalValueSuggestionData =
             CategoricalValueSuggestion({organ: organ, x: x, y: y, value: value, author: valueAuthor});
+        self.governingOrgan = organ;
         self.eligibilityParameters = VotingEligibilityParameters({
             quorum: quorum, approvalPercentage: approvalPercentage, approvalPercentageBase: approvalPercentageBase
         });
@@ -372,6 +378,7 @@ library Votings {
         self.suggestionType = SuggestionType.NumericalValue;
         self.numericalValueSuggestionData =
             NumericalValueSuggestion({organ: organ, x: x, y: y, value: value, author: valueAuthor});
+        self.governingOrgan = organ;
         self.eligibilityParameters = VotingEligibilityParameters({
             quorum: quorum, approvalPercentage: approvalPercentage, approvalPercentageBase: approvalPercentageBase
         });
@@ -419,12 +426,10 @@ library Votings {
 
         VoteResults memory results = getVoteResults(self);
 
-        // Check quorum (minimum participation)
-        if (results.totalVotes < self.eligibilityParameters.quorum) {
+        if (results.totalVotes == 0 || results.totalVotes < self.eligibilityParameters.quorum) {
             revert InsufficientVotes(results.forVotes, results.againstVotes);
         }
 
-        // Check approval percentage (simple majority or supermajority as needed)
         uint256 approvalPercentage =
             (results.forVotes * self.eligibilityParameters.approvalPercentageBase) / results.totalVotes;
         success = approvalPercentage > self.eligibilityParameters.approvalPercentage;
