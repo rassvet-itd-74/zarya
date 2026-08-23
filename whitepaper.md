@@ -413,6 +413,18 @@ enum SuggestionType {
 }
 ```
 
+**Параметры допуска к исполнению:**
+```solidity
+struct VotingEligibilityParameters {
+    uint256 quorum;                 // минимальное число голосов для кворума
+    uint256 approvalPercentage;     // минимальный порог одобрения
+    uint256 approvalPercentageBase; // база сравнения (100 = проценты, 10000 = BPS)
+}
+```
+
+Значения фиксируются при создании голосования из `_votingEligibilityParametersByOrgan[organ]`.
+Для голосований по темам и утверждениям берётся `simpleMajority` (quorum=1, approvalPercentage=50, base=100).
+
 **Структура голосования:**
 ```solidity
 struct Voting {
@@ -432,6 +444,7 @@ struct Voting {
     StatementSuggestion statementSuggestionData;
     CategoricalValueSuggestion categoricalValueSuggestionData;
     NumericalValueSuggestion numericalValueSuggestionData;
+    VotingEligibilityParameters eligibilityParameters;
     mapping(address partyMember => bool) hasVoted;
 }
 ```
@@ -473,6 +486,10 @@ contract Zarya {
     uint256 public nextVotingId;
     bool private _organsInitialized;
     mapping(uint256 => Votings.Voting) internal _votings;
+    // параметры кворума и одобрения задаются Председателем отдельно для каждого органа
+    mapping(PartyOrgan => Votings.VotingEligibilityParameters) internal _votingEligibilityParametersByOrgan;
+    // дефолт для голосований по темам и утверждениям: quorum=1, approvalPercentage=50, base=100
+    Votings.VotingEligibilityParameters public simpleMajority;
     PartyOrgans.MembersRegistry internal _partyMembersRegistry;
     Matricies.PairOfMatricies internal _matricies;
 }
@@ -492,6 +509,10 @@ error NotChairman(address caller);
 *Инициализация и управление органами:*
 - `initializeOrgans(organs, members)` — однократная инициализация реестра органов при деплое
 - `transferChairmanship(newChairman)` — передача роли Председателя другому адресу; старый адрес выбывает из органа ПРЛ, новый — добавляется; может быть вызвана только действующим Председателем
+
+*Управление параметрами голосований:*
+- `setMinimumQuorum(organ, value)` — задаёт минимальное число участников (кворум) для голосований органа; только Председатель
+- `setMinimumApprovalPercentage(organ, value)` — задаёт минимальный порог одобрения (`approvalPercentage` при base=100); только Председатель
 
 *Создание голосований:*
 - `createMembershipVoting(organ, member, duration)` — может быть вызвано членом органа или Председателем
@@ -729,18 +750,17 @@ zarya.castVote(
 
 **Запуск исполнения:**
 ```solidity
-bool success = zarya.executeVoting(
-    votingId,
-    minimumQuorum,               // uint256 — минимальное число участников (абсолютное)
-    minimumApprovalPercentage    // uint256 — минимальный процент одобрения (0-100)
-);
+bool success = zarya.executeVoting(votingId);
+// Параметры кворума и одобрения берутся из eligibilityParameters,
+// зафиксированных в структуре Voting при её создании из _votingEligibilityParametersByOrgan[organ].
 ```
 
 **Проверки при исполнении:**
-1. Голосование должно быть завершено (`block.timestamp >= deadline`)
+1. Голосование должно быть завершено (`block.timestamp >= endTime`)
 2. Голосование не должно быть финализировано ранее
-3. Кворум должен быть достигнут: `forVotes + againstVotes >= minimumQuorum`
-4. Процент одобрения: `(forVotes * 100) / (forVotes + againstVotes) >= minimumApprovalPercentage`
+3. Кворум должен быть достигнут: `totalVotes >= eligibilityParameters.quorum`
+4. Процент одобрения: `(forVotes * eligibilityParameters.approvalPercentageBase) / totalVotes > eligibilityParameters.approvalPercentage`
+   (параметры берутся из `eligibilityParameters`, зафиксированных при создании голосования)
 
 **Применение изменений при успехе:**
 
