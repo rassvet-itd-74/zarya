@@ -242,7 +242,7 @@ forge script script/Zarya.s.sol `
   --rpc-url $env:RPC_URL --private-key $env:PRIVATE_KEY --broadcast
 ```
 
-**Задеплоенный контракт `Zarya` (Sepolia):** `0x141eb27110329c82de3c95045c96f6ebf15fdc4b`
+**Задеплоенный контракт `Zarya` (Sepolia):** [`0x6b31cC58a7DC5919f460068cF68D16281F360d25`](https://sepolia.etherscan.io/address/0x6b31cC58a7DC5919f460068cF68D16281F360d25)
 
 ### 2. `ZaryaRegional.s.sol` — добавление региональных членов
 
